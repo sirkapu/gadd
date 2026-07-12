@@ -1,0 +1,71 @@
+{
+  "sha": "91be7f1ef4e3db5e1d067a22eb92e28560231100",
+  "base_sha": "cdc241337bc5dd0b9c0d2b860dbb8e89a94799ed",
+  "verdict": "FAIL",
+  "findings": [
+    {
+      "check": "contract-drift",
+      "severity": "CRITICAL",
+      "message": "Contract files changed since accepted baseline — contracts are governed-side law",
+      "paths": [
+        "src/contracts/submit-proof.ts"
+      ]
+    },
+    {
+      "check": "lane-violation",
+      "severity": "CRITICAL",
+      "message": "Governed-side files were modified (see OWNERSHIP.md lanes)",
+      "paths": [
+        "src/contracts/submit-proof.ts"
+      ]
+    },
+    {
+      "check": "rls-presence",
+      "severity": "CRITICAL",
+      "message": "New table 'proofs' created without ENABLE ROW LEVEL SECURITY",
+      "paths": [
+        "supabase/migrations/20260711120000_add_proofs.sql"
+      ]
+    },
+    {
+      "check": "rls-presence",
+      "severity": "CRITICAL",
+      "message": "New table 'proofs' has no CREATE POLICY",
+      "paths": [
+        "supabase/migrations/20260711120000_add_proofs.sql"
+      ]
+    },
+    {
+      "check": "test-weakening",
+      "severity": "MAJOR",
+      "message": "Added 1 skipped/focused test marker(s) (.skip/.only/xit)",
+      "paths": []
+    },
+    {
+      "check": "shared-util-reimpl",
+      "severity": "MAJOR",
+      "message": "Inline CORS headers instead of importing _shared/cors",
+      "paths": [
+        "supabase/functions/submit-proof.ts"
+      ]
+    },
+    {
+      "check": "ratchet-metrics",
+      "severity": "MAJOR",
+      "message": "Skipped tests grew: 0 → 1",
+      "paths": []
+    },
+    {
+      "check": "secret-leakage",
+      "severity": "CRITICAL",
+      "message": "console logging of credentials-like values in edge functions",
+      "paths": [
+        "supabase/functions/submit-proof.ts"
+      ]
+    }
+  ],
+  "metrics": {
+    "skipped_tests": 1,
+    "max_file_loc": 2
+  }
+}

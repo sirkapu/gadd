@@ -1,0 +1,29 @@
+name: gadd-redteam
+on:
+  workflow_run:
+    workflows: ["gadd-ratchet"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  redteam:
+    # Only on deterministic PASS — CRITICAL/MAJOR findings already force a repair round.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: RED_TEAM adversaries on the accepted-candidate diff
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "No ANTHROPIC_API_KEY secret — RED_TEAM step skipped (deterministic suite already PASSed)."
+            exit 0
+          fi
+          BASE="$(jq -r '.accepted_sha' gadd/BASELINE.json)"
+          git diff "$BASE"..HEAD > /tmp/diff.patch
+          bash .gadd/checks/redteam.sh /tmp/diff.patch || {
+            echo "::warning::RED_TEAM raised blockers — compile into repair prompt"; exit 1; }

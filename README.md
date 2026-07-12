@@ -1,0 +1,80 @@
+# GADD — Governed Agentic-Driven Development
+
+**Catch your AI agent breaking your app — before you accept its code.**
+
+Agentic coding tools ship fast and degrade quietly: weakened tests, missing RLS, drive-by edits to files they shouldn't touch. GADD is a quality **ratchet** for agent-written code. It governs any agent in one of two modes:
+
+- **In-loop** (`adapters/cc`) — when you control the executor (Claude Code, local agents): blocking gates inside the agent's own workflow.
+- **Boundary** (`adapters/lv`) — when you don't (Lovable and other managed builders): deterministic detection after every push, plus a repair loop that feeds findings back to the agent as its next prompt.
+
+Same invariants, two enforcement points. That's the whole idea.
+
+```
+you cannot govern how a managed agent writes.
+you can govern what goes in, and what gets accepted.
+```
+
+## Quickstart (Lovable)
+
+```bash
+git clone https://github.com/sirkapu/gadd /tmp/gadd
+cd your-lovable-repo
+bash /tmp/gadd/bin/install.sh --adapter=lv
+git add -A && git commit -m "chore: install gadd-lv" && git push
+```
+
+Done. From now on, every push runs the check suite and produces a verdict (`PASS`/`FAIL` + findings). Your agent's code is **integrated** when it lands, but only **accepted** when the ratchet is green.
+
+## What it catches (the 9 detectors)
+
+| # | Check | Severity | What it means |
+|---|-------|----------|---------------|
+| 1 | Contract drift | CRITICAL | Agent edited `src/contracts/**` — the types you committed as law |
+| 2 | Lane violation | CRITICAL | Agent touched files owned by you per `OWNERSHIP.md` |
+| 3 | RLS missing | CRITICAL | New table in a migration without row-level security |
+| 4 | Test weakening | MAJOR | Deleted/skipped tests, loosened assertions |
+| 5 | Shared-util reimplementation | MAJOR | Agent rewrote CORS/JSON/util code instead of importing `_shared/` |
+| 6 | Migration hygiene | MAJOR | Bad filenames, edits to already-applied migrations |
+| 7 | Ratchet metrics | MAJOR | Skipped-test count, max file size, type errors — regressions vs baseline |
+| 8 | Secret/PII leakage | CRITICAL | Tokens, keys, or user data logged in edge functions |
+| 9 | Knowledge drift | MAJOR | Repo `AGENTS.md` no longer matches what the agent was synced with |
+
+Every check is **deterministic** — grep/diff/AST, no LLM in the gate. The optional RED_TEAM step (LLM adversaries on the diff) only *proposes* fixes; it never arbitrates.
+
+## The loop
+
+```
+contract committed ─▶ agent prompted ─▶ agent pushes to main
+                                            │
+                            ratchet: 9 deterministic checks
+                                            │
+                          ┌───── PASS ──────┴────── FAIL ──────┐
+                          ▼                                    ▼
+                 baseline advances                findings → repair prompt
+                 (code ACCEPTED)                  (max 2 rounds, then human)
+```
+
+## Why not just protect `main`?
+
+Because managed builders like Lovable sync directly to `main`; branch protection breaks the platform. GADD-lv doesn't fight the platform — it moves enforcement to the only place you actually control: **acceptance**. Full rationale in [`spec/BOUNDARY-GOVERNANCE.md`](spec/BOUNDARY-GOVERNANCE.md).
+
+## Repo layout
+
+```
+spec/            the invariants — tool-agnostic (severity ladder, ratchet semantics,
+                 roles matrix, acceptance model)
+adapters/cc/     in-loop enforcement for Claude Code
+adapters/lv/     boundary enforcement for Lovable (checks, workflows, templates)
+bin/install.sh   one-command installer, --adapter=cc|lv
+```
+
+## Roadmap
+
+- [x] Boundary adapter for Lovable (`adapters/lv`)
+- [x] In-loop adapter for Claude Code (`adapters/cc`): tiered subagents + `/gadd-loop` (blocking CI/hooks: pending)
+- [ ] `gadd-accept` bot: auto-advance baseline on green
+- [ ] Cursor / Replit adapters — [contributions welcome](CONTRIBUTING.md)
+
+## License
+
+MIT — see [LICENSE](LICENSE).

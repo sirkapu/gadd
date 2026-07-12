@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gadd baseline",
+  "type": "object",
+  "required": ["accepted_sha"],
+  "properties": {
+    "accepted_sha": { "type": "string" },
+    "agents_md_sha": { "type": "string" },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "skipped_tests": { "type": "integer" },
+        "test_files": { "type": "integer" },
+        "max_file_loc": { "type": "integer" },
+        "ts_errors": { "type": "integer" }
+      }
+    }
+  }
+}
