@@ -7,8 +7,10 @@ Tool-agnostic invariants. Adapters implement enforcement; this document defines 
 1. **Contract-first.** Interfaces/types are committed by the governing side before the agent is
    prompted. The agent implements to the contract verbatim; any agent-authored change to a contract
    is a finding.
-2. **The ratchet only tightens.** Quality baselines (tests, type errors, lint debt, file size caps)
-   may improve or hold. Any regression is a finding — even if absolute values look "fine".
+2. **The ratchet only tightens.** Quality baselines may improve or hold. Any regression is a
+   finding — even if absolute values look "fine". Wired dimensions today: skipped-test count
+   and max file size. Type errors, test-file count, and lint debt are declared in
+   `spec/schemas/baseline.schema.json` but not yet enforced by any check (v0.3).
 3. **Deterministic gates.** A verdict must be reproducible from the repo state alone. LLMs may
    propose (RED_TEAM) or compile (Fixer); they never decide PASS/FAIL. Acceptance is decided
    only by deterministic gates; RED_TEAM verdicts gate dispatch of repair work in-loop,

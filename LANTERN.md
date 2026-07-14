@@ -17,6 +17,9 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 item 10a (C4 half-closed):** spec invariant 2 narrowed to the two
+  wired ratchet metrics (skipped tests, max file LOC); ts_errors/test_files/lint named as
+  unwired v0.3 work instead of implied capability.
 - **2026-07-14 · v0.2 item 5 + Q1 (C3 half-closed):** README roadmap now honest — cc
   adapter marked in progress (installer still refuses `--adapter=cc`; fixing it is v0.3)
   — and reordered internal-first per Q1: OSS milestones gate on ≥1 upstream-governed repo
