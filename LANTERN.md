@@ -17,6 +17,10 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 item 12:** Trivial/Standard/Major task tiers defined in spec §6
+  (proportionality: how much gate a task buys; grader changes always Major); gate-matrix
+  dispatch now references the tiers instead of assuming them. Also un-orphans
+  `docs/example-verdict.json` via a spec §5 reference (part of item 9).
 - **2026-07-14 · v0.2 item 10a (C4 half-closed):** spec invariant 2 narrowed to the two
   wired ratchet metrics (skipped tests, max file LOC); ts_errors/test_files/lint named as
   unwired v0.3 work instead of implied capability.

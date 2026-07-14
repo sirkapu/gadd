@@ -57,3 +57,15 @@ role-played adversaries produce correlated verdicts (see `docs/rejection-ledger.
 Verdicts are machine-readable JSON conforming to `spec/schemas/verdict.schema.json`:
 `{ sha, base_sha, verdict: PASS|FAIL, findings: [{check, severity, message, paths[]}], metrics }`.
 Adapters must emit one verdict per evaluated push and retain them (artifact, branch, or directory).
+A worked example: `docs/example-verdict.json`.
+
+## 6. Task tiers (proportionality)
+
+The Director declares a tier for every task at dispatch; the tier sets how much gate the
+task buys. Changing graders (`RED_TEAM/`, check suites, baselines) is always Major.
+
+| Tier | Definition | Gate proportionality |
+|---|---|---|
+| Trivial | Zero-judgment or cosmetic work: scaffolding, renames, formatting, docs with no normative content. No contact with contracts, schema, tests' semantics, or governed lanes | Deterministic gate only; RED_TEAM bench skipped (always-on triggers still apply) |
+| Standard | Feature work inside committed contracts | Deterministic gate + the adversaries the diff triggers (`RED_TEAM/gate-matrix.md`) |
+| Major | Touches contracts, migrations/schema, auth/money/PII, existing tests' semantics, governance or grader files — or crosses a lane | Deterministic gate + the full bench + human review of the acceptance |

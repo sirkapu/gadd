@@ -6,9 +6,10 @@ config: who runs, on what model tier, under which protocol.
 
 ## The bench
 
-One definition file per adversary in this directory. Defaults: every adversary runs on
-every RED_TEAM pass. A deployment may narrow that in its own copy of this matrix — except
-for the always-on triggers, which can never be skipped.
+One definition file per adversary in this directory. Dispatch scales with the task tier
+(spec §6): Trivial skips the bench, Standard runs the adversaries the diff triggers, Major
+runs all five. A deployment may tune the trigger column in its own copy of this matrix —
+but the always-on triggers can never be skipped, whatever the tier.
 
 | Adversary | Tier | Always-on trigger (never skip when…) |
 |---|---|---|
