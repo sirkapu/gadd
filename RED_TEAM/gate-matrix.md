@@ -49,7 +49,7 @@ concrete models are an adapter/deployment concern (spec §3):
    never decide acceptance — that is the deterministic gate's alone (spec invariant 3).
 4. On FAIL: the Fixer applies the blockers, then re-run ONLY the failed adversaries on
    the new diff. The Fixer never grades its own fix.
-5. 3-round cap. Still failing → the Architect arbitrates (re-scope / revert /
-   accept-with-waiver) and the arbitration is logged.
+5. 2-round cap (spec invariant 6). Still failing → the Architect arbitrates (re-scope /
+   revert / accept-with-waiver) and the arbitration is logged.
 6. Files in `RED_TEAM/` are graders: executors and the Fixer never edit them
    (spec §3 roles matrix, OWNERSHIP.md).

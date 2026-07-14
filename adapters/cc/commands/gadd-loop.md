@@ -30,7 +30,7 @@ Execute this loop:
    (spec invariant 3).
 5. **Fix** — on FAIL, dispatch `gadd-fixer` with ONLY the merged blocker list. Then re-run
    step 4 for ONLY the adversaries that failed, on the new diff. Fixer never grades its own fix.
-6. **Arbitration cap** — max 3 rounds of steps 4–5. At the cap, STOP and present the human:
+6. **Arbitration cap** — max 2 rounds of steps 4–5 (spec invariant 6). At the cap, STOP and present the human:
    the surviving blockers, options (re-scope / revert / accept-with-waiver), your recommendation.
 7. **Close** — once the deterministic gate is green and the RED_TEAM loop has concluded
    (clean bench, or human arbitration at the cap): summarize files touched,

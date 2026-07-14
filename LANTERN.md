@@ -11,12 +11,15 @@ below (append-only) and in git.
 | Version | v0.1 + RED_TEAM bench de-collapse (2026-07-14, uncommitted) |
 | Adapters | lv (boundary) shipped · cc (in-loop) shipped — blocking CI/hooks pending |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
-| Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 3-round cap · Architect arbitrates at the cap |
+| Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
 | Roadmap next | `gadd-accept` bot · cc blocking CI/hooks · Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 item 4 (C2 closed):** repair cap unified at 2 rounds everywhere —
+  `gadd-loop.md` step 6, `gate-matrix.md` protocol 5, cc README; spec invariant 6 was
+  already 2 and is now cited at each site.
 - **2026-07-14 · v0.2 item 3 (C1 closed):** ratified sentence added to spec invariant 3 —
   "Acceptance is decided only by deterministic gates; RED_TEAM verdicts gate dispatch of
   repair work in-loop, never acceptance." `gadd-loop.md` steps 4/7, `gate-matrix.md`

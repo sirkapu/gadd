@@ -23,8 +23,8 @@ adversaries worth more than one. Models follow the orchestration rule — struct
 Why this saves tokens: subagents run in their own context windows and return summaries, so the
 Director's context stays small; zero-judgment chores route to Haiku (~an order of magnitude
 cheaper), and so do the structural adversaries; RED_TEAM is read-only (no expensive rewrite
-spirals); failed adversaries alone re-run after a fix; the 3-round arbitration cap kills
-runaway loops.
+spirals); failed adversaries alone re-run after a fix; the 2-round arbitration cap (spec
+invariant 6) kills runaway loops.
 
 ## Install
 Copy into your repo (or user config):
