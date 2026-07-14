@@ -18,6 +18,14 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 RETRO:** `audits/retro-v0.2.md` (local-private). Key lessons: name
+  the decision not the output ("verdict" ambiguity); constants cited not restated; docs
+  written as intention read as claims; publication review must include tag/commit
+  messages; release audits keep a functional sandbox pass. Guards: G1 HOLDS, G2 HARDENED,
+  G5 PUBLISHED; G3 unmeasured, G4 red (v0.3). v0.3 sequencing hypothesis CONFIRMED with
+  two amendments (wart→phase 1; the reference deployment migrates replace-with-extension so its ratchet never
+  loosens); horizon proposed ≈2026-08-18 at 5 op-h/wk, milestones gate. 7 open questions
+  (OQ1–OQ7) awaiting ratification — v0.3 does not start until then.
 - **2026-07-14 · PUBLICATION (option b, ratified):** preconditions verified — origin/main
   at `f66d686`; all 11 rewritten commits proven local-only (both range directions checked).
   Full pre-rewrite history preserved on local branch `private/audits` (`3904463`). main
