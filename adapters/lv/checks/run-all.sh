@@ -15,7 +15,9 @@ export GADD_HEAD="${GADD_HEAD:-$(git rev-parse HEAD)}"
 export GADD_FINDINGS="/tmp/gadd-findings.ndjson"
 : > "$GADD_FINDINGS"
 
-for c in "$DIR"/0*.sh; do bash "$c" || echo "::warning::check $(basename "$c") errored (non-fatal)" >&2; done
+# 01–09 ship with gadd; deployments may add their own NN-*.sh extensions (e.g.
+# 90-deployment-ratchet.sh) — they run in lexical order and report via lib/common.sh.
+for c in "$DIR"/[0-9]*.sh; do bash "$c" || echo "::warning::check $(basename "$c") errored (non-fatal)" >&2; done
 
 mkdir -p gadd/verdicts
 findings="$(jq -s '.' "$GADD_FINDINGS" 2>/dev/null || echo '[]')"
@@ -36,9 +38,9 @@ if [ -f "$SCHEMAS/verdict.schema.json" ]; then
     . as $d
     | (($s[0].required - ($d|keys)) == [])
       and ($s[0].properties.verdict.enum | index($d.verdict) != null)
-      and ([ $d.findings[]?
-             | (($s[0].properties.findings.items.required - keys) == [])
-               and ($s[0].properties.findings.items.properties.severity.enum | index(.severity) != null)
+      and ([ $d.findings[]? as $f
+             | (($s[0].properties.findings.items.required - ($f|keys)) == [])
+               and ($s[0].properties.findings.items.properties.severity.enum | index($f.severity) != null)
            ] | all)
   ' >/dev/null || { schema_bad=1
     echo "::error::emitted verdict does not conform to verdict.schema.json" >&2; }
