@@ -6,6 +6,7 @@
   "properties": {
     "accepted_sha": { "type": "string" },
     "agents_md_sha": { "type": "string" },
+    "accept_authors": { "type": "array", "items": { "type": "string" } },
     "metrics": {
       "type": "object",
       "properties": {

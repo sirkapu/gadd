@@ -17,6 +17,11 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 item 11 (Goodhart gap closed):** `gadd: accept` exception hardened
+  in check 02 — accept commits must ALSO be authored by an email in the ACCEPTED
+  baseline's `accept_authors` allowlist (read from GADD_BASE, not the working tree, so an
+  agent cannot self-enroll in the same push). Installer seeds the list with the
+  installer's git email; legacy baselines get subject-only + a MINOR nudge.
 - **2026-07-14 · v0.2 item 9 (orphans un-orphaned):** schema validation wired into
   `run-all.sh` — BASELINE.json checked against `baseline.schema.json` before the suite,
   the emitted verdict checked against `verdict.schema.json` after (jq validator driven by

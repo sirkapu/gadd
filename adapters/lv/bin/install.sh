@@ -13,10 +13,13 @@ for t in AGENTS.md OWNERSHIP.md; do [ -f "$t" ] || cp "$SRC/templates/$t" "$t"; 
 cp "$SRC/templates/LV-REPAIR-TEMPLATE.md" gadd/ 2>/dev/null || true
 
 AGENTS_SHA=$(sha256sum AGENTS.md | awk '{print $1}')
+EMAIL="$(git config user.email || true)"
+ACCEPT_AUTHORS="[]"; [ -n "$EMAIL" ] && ACCEPT_AUTHORS="[\"$EMAIL\"]"
 cat > gadd/BASELINE.json << JSON
 {
   "accepted_sha": "$(git rev-parse HEAD)",
   "agents_md_sha": "$AGENTS_SHA",
+  "accept_authors": $ACCEPT_AUTHORS,
   "metrics": { "skipped_tests": 0, "max_file_loc": 400 }
 }
 JSON

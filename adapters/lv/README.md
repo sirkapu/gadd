@@ -13,7 +13,9 @@ Config via env in the workflow if your layout differs: `GADD_CONTRACT_DIR`, `GAD
 `GADD_SHARED_DIR`.
 
 ## Accepting a green push
-On PASS, advance the baseline (this is the acceptance act):
+On PASS, advance the baseline (this is the acceptance act). The accept commit's subject must
+start `gadd: accept` AND its author email must be in the accepted baseline's `accept_authors`
+allowlist (the installer seeds it with your git email):
 ```bash
 jq --arg sha "$(git rev-parse HEAD)" '.accepted_sha=$sha' gadd/BASELINE.json > t && mv t gadd/BASELINE.json
 git commit -am "gadd: accept $(git rev-parse --short HEAD)" && git push
