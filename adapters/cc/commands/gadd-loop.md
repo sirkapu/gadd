@@ -19,10 +19,15 @@ Execute this loop:
 3. **Deterministic gate** — have `gadd-mechanic` run `bash .gadd/checks/run-all.sh` (if the
    gadd ratchet is installed) and return the verdict JSON. FAIL → route findings back to the
    executor as a scoped repair task. Do not proceed on FAIL.
-4. **RED_TEAM** — on deterministic PASS, dispatch `gadd-redteam` with the diff range. It returns
-   VERDICT + max 3 blockers + one-line fixes.
-5. **Fix** — on FAIL, dispatch `gadd-fixer` with ONLY the blocker list. Then re-run step 4 with
-   the failed adversaries' focus. Fixer never grades its own fix.
+4. **RED_TEAM** — on deterministic PASS, launch the adversary bench per `RED_TEAM/gate-matrix.md`:
+   dispatch EACH triggered adversary as its OWN subagent (`gadd-rt-security`,
+   `gadd-rt-data-integrity`, `gadd-rt-contract-fidelity`, `gadd-rt-test-honesty`,
+   `gadd-rt-regression`) in ONE parallel dispatch — five isolated contexts, each given only
+   the diff range + the task's EARS criteria. NEVER run the bench as a single agent
+   role-playing five perspectives, and never show one adversary another's verdict. Each
+   returns VERDICT + max 3 blockers + one-line fixes; any FAIL fails the pass.
+5. **Fix** — on FAIL, dispatch `gadd-fixer` with ONLY the merged blocker list. Then re-run
+   step 4 for ONLY the adversaries that failed, on the new diff. Fixer never grades its own fix.
 6. **Arbitration cap** — max 3 rounds of steps 4–5. At the cap, STOP and present the human:
    the surviving blockers, options (re-scope / revert / accept-with-waiver), your recommendation.
 7. **Close** — on PASS: summarize files touched, criteria→evidence mapping, and (if ratchet

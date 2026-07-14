@@ -32,10 +32,14 @@ Tool-agnostic invariants. Adapters implement enforcement; this document defines 
 | Director/Architect | Specs w/ EARS criteria, task decomposition, dispatch, arbitration at the round cap | Write production code |
 | Executors | Features, components, contracts drafts, tests, agent prompt drafts | Touch RED_TEAM/, gate configs, ratchet baselines, weaken tests |
 | Mechanics | Scaffolding, renames, doc formatting, running checks | Anything requiring judgment |
-| RED_TEAM | Adversaries in parallel on the diff; VERDICT: PASS/FAIL + max 3 blockers + one-line fixes | Rewrite code |
+| RED_TEAM | One adversary per isolated invocation, in parallel on the diff (one definition file per adversary in `RED_TEAM/`); each returns VERDICT: PASS/FAIL + max 3 blockers + one-line fixes | Rewrite code; share context or verdicts with another adversary |
 | Fixer | Applies blockers' fixes; reports back | Grade its own fix — failed adversaries re-run on the new diff |
 
-Model assignment is an adapter/deployment concern, not a spec concern.
+Model assignment is an adapter/deployment concern, not a spec concern. Adversary
+*independence* IS a spec concern: each RED_TEAM adversary runs as its own isolated
+invocation and never sees another adversary's verdict. A single agent role-playing the
+bench does not satisfy this matrix — one context has one set of blind spots, and
+role-played adversaries produce correlated verdicts (see `docs/rejection-ledger.md`).
 
 ## 4. Acceptance model
 

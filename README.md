@@ -39,7 +39,7 @@ Done. From now on, every push runs the check suite and produces a verdict (`PASS
 | 8 | Secret/PII leakage | CRITICAL | Tokens, keys, or user data logged in edge functions |
 | 9 | Knowledge drift | MAJOR | Repo `AGENTS.md` no longer matches what the agent was synced with |
 
-Every check is **deterministic** — grep/diff/AST, no LLM in the gate. The optional RED_TEAM step (LLM adversaries on the diff) only *proposes* fixes; it never arbitrates.
+Every check is **deterministic** — grep/diff/AST, no LLM in the gate. The optional RED_TEAM step — five LLM adversaries, each launched as its own isolated invocation on the diff (definitions in [`RED_TEAM/`](RED_TEAM/)) — only *proposes* fixes; it never arbitrates.
 
 ## The loop
 
@@ -63,6 +63,8 @@ Because managed builders like Lovable sync directly to `main`; branch protection
 ```
 spec/            the invariants — tool-agnostic (severity ladder, ratchet semantics,
                  roles matrix, acceptance model)
+RED_TEAM/        the adversary bench — one definition file per adversary (role, attack
+                 surface, pass criteria, output contract) + gate-matrix.md
 adapters/cc/     in-loop enforcement for Claude Code
 adapters/lv/     boundary enforcement for Lovable (checks, workflows, templates)
 bin/install.sh   one-command installer, --adapter=cc|lv

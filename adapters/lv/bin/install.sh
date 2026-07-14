@@ -7,6 +7,7 @@ SRC="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p .gadd/checks/lib .github/workflows gadd/verdicts gadd/lv-blockers
 cp -r "$SRC/checks/." .gadd/checks/
 cp "$SRC/workflows/"gadd-*.yml .github/workflows/
+[ -d RED_TEAM ] || cp -r "$SRC/../../RED_TEAM" RED_TEAM   # adversary bench (graders — never edited by executors)
 for t in AGENTS.md OWNERSHIP.md; do [ -f "$t" ] || cp "$SRC/templates/$t" "$t"; done
 cp "$SRC/templates/LV-REPAIR-TEMPLATE.md" gadd/ 2>/dev/null || true
 

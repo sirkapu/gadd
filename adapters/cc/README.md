@@ -8,19 +8,30 @@ dispatch for token economy**: the expensive model directs, cheap models burn the
 | Director/Architect | your main session (frontier model) | the `/gadd-loop` command |
 | Executors | Sonnet | `agents/gadd-executor.md` |
 | Mechanics | Haiku | `agents/gadd-mechanic.md` |
-| RED_TEAM | Opus, read-only tools | `agents/gadd-redteam.md` |
+| RED_TEAM — judgment adversaries (SECURITY, DATA_INTEGRITY, REGRESSION) | Opus, read-only tools | `agents/gadd-rt-*.md`, one isolated subagent each |
+| RED_TEAM — structural adversaries (CONTRACT_FIDELITY, TEST_HONESTY) | Haiku, read-only tools | `agents/gadd-rt-*.md`, one isolated subagent each |
 | Fixer | Opus, separate instance | `agents/gadd-fixer.md` |
+
+The RED_TEAM bench is five SEPARATE subagent invocations launched in parallel — never one
+agent role-playing five perspectives. Each `gadd-rt-*` agent reads its own definition from
+the governed repo's `RED_TEAM/<NAME>.md` (role, attack surface, pass criteria, output
+contract) and never sees another adversary's verdict: independence is what makes five
+adversaries worth more than one. Models follow the orchestration rule — structural checks
+(diff-vs-artifact comparison) on the cheap tier, judgment calls on the strong tier — per
+`RED_TEAM/gate-matrix.md`.
 
 Why this saves tokens: subagents run in their own context windows and return summaries, so the
 Director's context stays small; zero-judgment chores route to Haiku (~an order of magnitude
-cheaper); RED_TEAM is read-only (no expensive rewrite spirals); the 3-round arbitration cap kills
+cheaper), and so do the structural adversaries; RED_TEAM is read-only (no expensive rewrite
+spirals); failed adversaries alone re-run after a fix; the 3-round arbitration cap kills
 runaway loops.
 
 ## Install
 Copy into your repo (or user config):
 ```bash
-cp -r agents/  <repo>/.claude/agents/
+cp -r agents/   <repo>/.claude/agents/
 cp -r commands/ <repo>/.claude/commands/
+cp -r ../../RED_TEAM/ <repo>/RED_TEAM/   # the bench definitions — graders; executors never touch them
 ```
 Then: `/gadd-loop <feature or spec path>`.
 
