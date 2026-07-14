@@ -17,6 +17,10 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 item 5 + Q1 (C3 half-closed):** README roadmap now honest — cc
+  adapter marked in progress (installer still refuses `--adapter=cc`; fixing it is v0.3)
+  — and reordered internal-first per Q1: OSS milestones gate on ≥1 upstream-governed repo
+  with verdict data.
 - **2026-07-14 · v0.2 item 4 (C2 closed):** repair cap unified at 2 rounds everywhere —
   `gadd-loop.md` step 6, `gate-matrix.md` protocol 5, cc README; spec invariant 6 was
   already 2 and is now cited at each site.

@@ -72,8 +72,12 @@ bin/install.sh   one-command installer, --adapter=cc|lv
 
 ## Roadmap
 
+Priorities are driven by real governed repos; OSS milestones (releases, new adapters)
+activate once ≥1 repo runs upstream gadd end-to-end with verdict data.
+
 - [x] Boundary adapter for Lovable (`adapters/lv`)
-- [x] In-loop adapter for Claude Code (`adapters/cc`): tiered subagents + `/gadd-loop` (blocking CI/hooks: pending)
+- [ ] In-loop adapter for Claude Code (`adapters/cc`) — in progress: agents + `/gadd-loop` shipped; one-command installer and blocking CI/hooks pending
+- [ ] v0.3 — measurement loop (escaped-regression ledger + verdict aggregation), first repo governed by upstream gadd, gadd dogfooding itself
 - [ ] `gadd-accept` bot: auto-advance baseline on green
 - [ ] Cursor / Replit adapters — [contributions welcome](CONTRIBUTING.md)
 
