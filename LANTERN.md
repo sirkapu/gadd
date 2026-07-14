@@ -8,17 +8,23 @@ below (append-only) and in git.
 
 | Field | Value |
 |---|---|
-| Version | v0.2 + v0.3 phase 1 (migration enablement + live-data fixes) — phases 1b/2 next |
-| Coverage proxy | 0→1 in flight: first deployment migrated onto upstream (replace-with-extension, local suite PASS); counts once the operator pushes it (deploy-adjacent = human, per OQ5 tier-3 rule) |
+| Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
+| Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes). North Star itself still unmeasured — the instrument is phase 2 |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
 | Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | v0.3 (horizon set at v0.2 retro): measurement loop (escaped-regression ledger + verdict aggregation) · first upstream-governed repo · cc installer · dogfood gadd on gadd · ts_errors/test_files/lint metrics · then `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | QUEUED for next /mission-loop: phase 1b (metric parity per `docs/metric-parity.md`) + phase 2 (escaped-regression ledger + aggregation) — both designed against live verdict data · then phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.3 PHASE 1 CLOSED (operator-verified cross-repo state):** the human
+  push step is done — migration commits, gadd accept, and RED_TEAM tier mapping are live
+  on the first deployment's origin (tip `6b25ef5`); the gadd-ratchet workflow runs on its
+  pushes. **Coverage proxy 0→1 — first North-Star proxy movement of the mission.** Phases
+  1b (metric parity) + 2 (escaped-regression ledger + aggregation) are unblocked against
+  live verdict data and queued for the next /mission-loop run.
 - **2026-07-14 · Repair manifest accepted, wrinkles fixed (Trivial, one commit):** zero
   vetoes on the reconstruction repairs; union-reconstruction logged in the rejection
   ledger as the standard response to paste truncation. Wrinkles: mission-loop title now
