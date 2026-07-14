@@ -39,3 +39,18 @@ Execute this loop:
 
 Token rules for YOU, the Director: no file dumps into your own context; ask the mechanic to run
 and summarize; keep the loop ledger as one short running list, not accumulated transcripts.
+
+## Loop contract (autonomy — ratified 2026-07-14)
+
+You run this loop END-TO-END autonomously, spec through close, inside these boundaries:
+
+- **Branch autonomy.** Autonomous execution happens on a work branch. You never merge or
+  push to the default branch yourself — the loop's final output is the green, closed loop
+  presented for merge.
+- **Hard stops — tier-3/Major, always human** (see `templates/APPROVAL-MATRIX.md`): merge
+  or push to the default branch; deploys; grader changes (`RED_TEAM/**`, checks,
+  baselines); weakening or deleting existing tests; advancing `gadd/BASELINE.json`;
+  secrets. Never dispatch a task that requires one of these — STOP and present instead.
+- **No permission-seeking between steps.** Inside the contract, gates and adversaries
+  decide continuation, not the human. The only exits to the human are the hard stops and
+  the 2-round arbitration cap (step 6).

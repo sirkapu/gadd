@@ -19,6 +19,14 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · OQ5 governance pack (pulled forward, parallel to phase 2):**
+  `templates/ORCHESTRATION.md` (roles × model PLACEHOLDERS; fallback-chain rule: workers
+  may fall back down, graders never do) + `templates/APPROVAL-MATRIX.md` (autonomous /
+  pre-approved / tier-3-human, mapped to spec §6 tiers). `/gadd-loop` gains the autonomy
+  contract: end-to-end on work branches, no permission-seeking between steps, hard stops
+  at tier-3 (merge/deploy/graders/baseline/secrets always human). Deployment side: Tier
+  lines added to the reference deployment's five adversaries so the redteam workflow maps
+  structural→cheap / judgment→strong instead of running everything strong.
 - **2026-07-14 · v0.3 PHASE 1 executed (OQ1–OQ7 ratified):** standing rule OQ6 written into
   spec preamble + CONTRIBUTING. Wart fixed: installer/quickstart now do the two-commit
   install-then-accept dance (OQ1). Extension mechanism: run-all executes `[0-9]*.sh` so a
