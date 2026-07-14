@@ -5,3 +5,5 @@ An adapter must: (1) implement the invariants in `spec/GADD.md`, (2) declare its
 point (in-loop or boundary), (3) emit verdicts conforming to `spec/schemas/verdict.schema.json`,
 (4) install with one command. Open an issue with the enforcement analysis before coding.
 Checks must stay deterministic — PRs adding LLM-judged gates will be declined (see anti-goals).
+Standing rule: the spec and README claim only what is wired; everything else carries a
+roadmap label. PRs that mark aspirations as shipped will be asked to relabel.

@@ -1,6 +1,8 @@
 # GADD Core Specification (v0.1)
 
 Tool-agnostic invariants. Adapters implement enforcement; this document defines *what* is enforced.
+Standing rule (2026-07-14): the spec and README claim only what is wired; everything else
+carries a roadmap label.
 
 ## 1. Invariants
 
