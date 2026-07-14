@@ -19,6 +19,12 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · Commands installed (Trivial, ratified inline):** `/mission-loop` (the
+  run-until-done human-gated Mission Driver) + `/objective-audit` (the Architect audit it
+  bootstraps from) live at `.claude/commands/`. Seeds v0.3 phase-4 dogfooding — gadd now
+  has its own `.claude/`. Paste-truncation repairs to both documents disclosed in the
+  session report (reconstructed from the two in-session pastes; no design changes). The
+  audit was NOT re-run: objective function is RATIFIED, so the loop's bootstrap proceeds.
 - **2026-07-14 · OQ5 governance pack (pulled forward, parallel to phase 2):**
   `templates/ORCHESTRATION.md` (roles × model PLACEHOLDERS; fallback-chain rule: workers
   may fall back down, graders never do) + `templates/APPROVAL-MATRIX.md` (autonomous /
