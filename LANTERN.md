@@ -17,6 +17,11 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 item 3 (C1 closed):** ratified sentence added to spec invariant 3 —
+  "Acceptance is decided only by deterministic gates; RED_TEAM verdicts gate dispatch of
+  repair work in-loop, never acceptance." `gadd-loop.md` steps 4/7, `gate-matrix.md`
+  protocol 3, and `gadd-redteam.yml` aligned to repair-dispatch semantics.
+
 - **2026-07-14 · Architect deep audit (read-only):** full-repo goal reconstruction +
   objective-function proposal written to `audits/objective-audit-v1.md` (committed). Verdict:
   goal clear in function, unratified in audience; North Star (escaped-regression rate)

@@ -45,8 +45,8 @@ concrete models are an adapter/deployment concern (spec §3):
    `RED_TEAM/<NAME>.md` definition, the diff range, and the task's EARS criteria.
 2. Each returns `VERDICT: PASS` or `VERDICT: FAIL` + at most 3 blockers, each with a
    one-line fix (+ at most 3 non-blocking notes).
-3. Aggregation is mechanical: any adversary FAIL fails the pass. Adversaries propose;
-   they never arbitrate (spec invariant 3).
+3. Aggregation is mechanical: any adversary FAIL dispatches repair work. RED_TEAM verdicts
+   never decide acceptance — that is the deterministic gate's alone (spec invariant 3).
 4. On FAIL: the Fixer applies the blockers, then re-run ONLY the failed adversaries on
    the new diff. The Fixer never grades its own fix.
 5. 3-round cap. Still failing → the Architect arbitrates (re-scope / revert /

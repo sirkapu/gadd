@@ -10,6 +10,8 @@ permissions:
 jobs:
   redteam:
     # Only on deterministic PASS — CRITICAL/MAJOR findings already force a repair round.
+    # A red X here is a repair-dispatch signal, never an acceptance gate (spec invariant 3):
+    # acceptance is decided only by the deterministic gadd-ratchet suite.
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
@@ -26,4 +28,4 @@ jobs:
           BASE="$(jq -r '.accepted_sha' gadd/BASELINE.json)"
           git diff "$BASE"..HEAD > /tmp/diff.patch
           bash .gadd/checks/redteam.sh /tmp/diff.patch || {
-            echo "::warning::RED_TEAM raised blockers — compile into repair prompt"; exit 1; }
+            echo "::warning::RED_TEAM raised blockers — compile into a repair prompt (repair-dispatch signal only; acceptance stays with the deterministic gate)"; exit 1; }

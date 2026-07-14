@@ -25,13 +25,17 @@ Execute this loop:
    `gadd-rt-regression`) in ONE parallel dispatch — five isolated contexts, each given only
    the diff range + the task's EARS criteria. NEVER run the bench as a single agent
    role-playing five perspectives, and never show one adversary another's verdict. Each
-   returns VERDICT + max 3 blockers + one-line fixes; any FAIL fails the pass.
+   returns VERDICT + max 3 blockers + one-line fixes; any FAIL dispatches repair work
+   (step 5). RED_TEAM never decides acceptance — the deterministic gate (step 3) does
+   (spec invariant 3).
 5. **Fix** — on FAIL, dispatch `gadd-fixer` with ONLY the merged blocker list. Then re-run
    step 4 for ONLY the adversaries that failed, on the new diff. Fixer never grades its own fix.
 6. **Arbitration cap** — max 3 rounds of steps 4–5. At the cap, STOP and present the human:
    the surviving blockers, options (re-scope / revert / accept-with-waiver), your recommendation.
-7. **Close** — on PASS: summarize files touched, criteria→evidence mapping, and (if ratchet
-   installed) instruct how to advance gadd/BASELINE.json via a `gadd: accept` commit.
+7. **Close** — once the deterministic gate is green and the RED_TEAM loop has concluded
+   (clean bench, or human arbitration at the cap): summarize files touched,
+   criteria→evidence mapping, and (if ratchet installed) instruct how to advance
+   gadd/BASELINE.json via a `gadd: accept` commit.
 
 Token rules for YOU, the Director: no file dumps into your own context; ask the mechanic to run
 and summarize; keep the loop ledger as one short running list, not accumulated transcripts.

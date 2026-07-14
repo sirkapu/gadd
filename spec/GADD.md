@@ -10,7 +10,9 @@ Tool-agnostic invariants. Adapters implement enforcement; this document defines 
 2. **The ratchet only tightens.** Quality baselines (tests, type errors, lint debt, file size caps)
    may improve or hold. Any regression is a finding — even if absolute values look "fine".
 3. **Deterministic gates.** A verdict must be reproducible from the repo state alone. LLMs may
-   propose (RED_TEAM) or compile (Fixer); they never decide PASS/FAIL.
+   propose (RED_TEAM) or compile (Fixer); they never decide PASS/FAIL. Acceptance is decided
+   only by deterministic gates; RED_TEAM verdicts gate dispatch of repair work in-loop,
+   never acceptance.
 4. **Integration ≠ acceptance.** Code is *integrated* when it lands in the default branch. It is
    *accepted* only when the ratchet is green on it. The last accepted SHA is the recovery point.
 5. **Findings close loops.** Every FAIL must produce an actionable artifact (repair prompt or
