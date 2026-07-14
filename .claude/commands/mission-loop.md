@@ -1,4 +1,4 @@
-# /loop — Mission Driver (run-until-done, human-gated)
+# /mission-loop — Mission Driver (run-until-done, human-gated)
 
 **What this is:** the autonomous driver for a governed repo (GADD or ACDD). Each run advances the mission toward the **ratified objective function** as far as it can, and stops ONLY at a defined stop condition — never out of confusion, never past a human gate. "Until done" is achieved by relaunching this loop (manually or scheduled) until the Definition of Done is *measured*, not declared. Lives at `.claude/commands/mission-loop.md`; runnable interactively or scheduled: `claude -p "$(cat .claude/commands/mission-loop.md)"`.
 

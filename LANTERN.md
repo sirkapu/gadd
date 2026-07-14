@@ -19,6 +19,13 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · Repair manifest accepted, wrinkles fixed (Trivial, one commit):** zero
+  vetoes on the reconstruction repairs; union-reconstruction logged in the rejection
+  ledger as the standard response to paste truncation. Wrinkles: mission-loop title now
+  `/mission-loop`; audit report path versioned (`audits/objective-audit-v{N}.md`, never
+  overwrite); scope-boundary bracket defaults to REPO-ONLY when unfilled. Follow-up
+  RATIFIED as Standard, scheduled with phase 3: ship both commands in
+  `adapters/cc/commands/` so deployments inherit them at install time.
 - **2026-07-14 · Commands installed (Trivial, ratified inline):** `/mission-loop` (the
   run-until-done human-gated Mission Driver) + `/objective-audit` (the Architect audit it
   bootstraps from) live at `.claude/commands/`. Seeds v0.3 phase-4 dogfooding — gadd now

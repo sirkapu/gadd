@@ -2,9 +2,9 @@
 
 **Model gate:** this is an Architect run. Verify you are Claude Fable 5 at max effort (`/model`); if not, stop and say so — do not run this on a lesser tier.
 
-**Prime directive: READ-ONLY.** This entire run modifies nothing — no edits, no fixes, no cleanup, no lantern changes beyond logging this audit session. Your only write is the findings report to `audits/objective-audit-v1.md`. Anything broken you find gets *reported*, not repaired. Fixes come later, ratified.
+**Prime directive: READ-ONLY.** This entire run modifies nothing — no edits, no fixes, no cleanup, no lantern changes beyond logging this audit session. Your only write is the findings report to `audits/objective-audit-v{N}.md`, where N is the next free version — never overwrite a prior report. Anything broken you find gets *reported*, not repaired. Fixes come later, ratified.
 
-**Scope boundary:** the audit's subject is THIS repo. Reading outside it (sibling repos, other directories on the machine) is allowed ONLY if the operator grants it here: [OUT-OF-REPO READS: allowed / repo-only]. If allowed, every out-of-repo fact must be cited as out-of-repo evidence and its sections marked SENSITIVE in the sharing annex by default. If repo-only, references to external paths found inside the repo are reported as findings, never followed.
+**Scope boundary:** the audit's subject is THIS repo. Reading outside it (sibling repos, other directories on the machine) is allowed ONLY if the operator grants it here: [OUT-OF-REPO READS: allowed / repo-only]. If allowed, every out-of-repo fact must be cited as out-of-repo evidence and its sections marked SENSITIVE in the sharing annex by default. If repo-only, references to external paths found inside the repo are reported as findings, never followed. If the bracket is unfilled at invocation, the default is REPO-ONLY; out-of-repo reads require an explicit per-run grant in the invocation message.
 
 **Why this run exists:** before optimizing anything, we need three truths established with evidence: (1) what this repo actually IS, (2) what it is FOR, and (3) what function we should be maximizing — stated precisely enough that every future task can be judged by whether it moves that function. ultrathink throughout; every claim in your report must cite a file path, commit, or command output. No assumptions presented as findings.
 
@@ -42,7 +42,7 @@
 
 ## Stage 5 — Findings Report
 
-Write `audits/objective-audit-v1.md`, structured for sharing:
+Write `audits/objective-audit-v{N}.md` (the next free version), structured for sharing:
 
 1. **Executive summary** — ten lines max: what this repo is, its real state, the proposed objective function, the single highest-leverage move.
 2. **Goal:** stated / revealed / verdict (Stage 2), with the contradictions table.
