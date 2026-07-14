@@ -68,6 +68,8 @@ spec/            the invariants — tool-agnostic (severity ladder, ratchet sema
                  roles matrix, acceptance model)
 RED_TEAM/        the adversary bench — one definition file per adversary (role, attack
                  surface, pass criteria, output contract) + gate-matrix.md
+templates/       governance pack — orchestration (roles × model placeholders + the
+                 fallback-chain rule) and approval-matrix templates for deployments
 adapters/cc/     in-loop enforcement for Claude Code
 adapters/lv/     boundary enforcement for Lovable (checks, workflows, templates)
 bin/install.sh   one-command installer, --adapter=cc|lv
