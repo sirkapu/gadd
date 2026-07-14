@@ -8,15 +8,23 @@ below (append-only) and in git.
 
 | Field | Value |
 |---|---|
-| Version | v0.1 + RED_TEAM bench de-collapse (2026-07-14, uncommitted) |
-| Adapters | lv (boundary) shipped · cc (in-loop) shipped — blocking CI/hooks pending |
+| Version | v0.2 — self-consistency wave complete, tagged locally; PUSH PENDING publication decision (audit reports on main contain SENSITIVE-marked content) |
+| Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
+| Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | `gadd-accept` bot · cc blocking CI/hooks · Cursor/Replit adapters |
+| Roadmap next | v0.3 (horizon set at v0.2 retro): measurement loop (escaped-regression ledger + verdict aggregation) · first upstream-governed repo · cc installer · dogfood gadd on gadd · ts_errors/test_files/lint metrics · then `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 TAGGED:** release audit green (`audits/release-audit-v0.2.md`) —
+  all 7 ratified items verified, forged-accept attack caught in sandbox, scripts
+  syntax-clean, consistency sweep clean. Objective function ratified (Q1–Q6, Q8); Q7
+  UNANSWERED (placeholder returned — INFO, no action). Tag `v0.2` created locally.
+  **PUSH BLOCKED pending decision:** main carries `audits/` reports whose own sharing
+  annex marks sections SENSITIVE — publishing to the public repo needs an explicit call
+  (options presented in session report-back).
 - **2026-07-14 · v0.2 item 11 (Goodhart gap closed):** `gadd: accept` exception hardened
   in check 02 — accept commits must ALSO be authored by an email in the ACCEPTED
   baseline's `accept_authors` allowlist (read from GADD_BASE, not the working tree, so an
