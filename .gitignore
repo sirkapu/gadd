@@ -1,0 +1,4 @@
+# Audits are local/private by default (standing rule, 2026-07-14): full reports live on
+# the local private/audits branch; a public version only ever ships as a gate-passed
+# redaction, committed explicitly.
+audits/

@@ -8,7 +8,7 @@ below (append-only) and in git.
 
 | Field | Value |
 |---|---|
-| Version | v0.2 — self-consistency wave complete, tagged locally; PUSH PENDING publication decision (audit reports on main contain SENSITIVE-marked content) |
+| Version | v0.2 — tagged and pushed to origin (publication option b: audits local-private, main rewritten pre-push) |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
 | Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
@@ -18,6 +18,17 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · PUBLICATION (option b, ratified):** preconditions verified — origin/main
+  at `f66d686`; all 11 rewritten commits proven local-only (both range directions checked).
+  Full pre-rewrite history preserved on local branch `private/audits` (`3904463`). main
+  rewritten: objective-audit commit dropped; release-audit file stripped from the tag
+  commit (lantern half kept); `audits/` gitignored; both reports remain on disk as
+  untracked local copies. Tag `v0.2` recreated annotated on the rewritten tip; main +
+  tag pushed. Q7 DECIDED (delegated): existing `f66d686` linkage accepted as intentional;
+  repo-local identity switched to `20259778+sirkapu@users.noreply.github.com` for all
+  future commits; true pseudonym separation would need a ratified public-history rewrite
+  — cheapest while external users = 0. **STANDING RULE: audits are local/private by
+  default; public versions only ever as gate-passed redactions.**
 - **2026-07-14 · v0.2 TAGGED:** release audit green (`audits/release-audit-v0.2.md`) —
   all 7 ratified items verified, forged-accept attack caught in sandbox, scripts
   syntax-clean, consistency sweep clean. Objective function ratified (Q1–Q6, Q8); Q7
