@@ -4,8 +4,9 @@ set -euo pipefail
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
 [ -d .git ] || { echo "run me from the target repo root"; exit 1; }
 
-mkdir -p .gadd/checks/lib .github/workflows gadd/verdicts gadd/lv-blockers
+mkdir -p .gadd/checks/lib .gadd/schemas .github/workflows gadd/verdicts gadd/lv-blockers
 cp -r "$SRC/checks/." .gadd/checks/
+cp "$SRC/../../spec/schemas/"*.json .gadd/schemas/
 cp "$SRC/workflows/"gadd-*.yml .github/workflows/
 [ -d RED_TEAM ] || cp -r "$SRC/../../RED_TEAM" RED_TEAM   # adversary bench (graders — never edited by executors)
 for t in AGENTS.md OWNERSHIP.md; do [ -f "$t" ] || cp "$SRC/templates/$t" "$t"; done

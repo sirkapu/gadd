@@ -17,6 +17,12 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · v0.2 item 9 (orphans un-orphaned):** schema validation wired into
+  `run-all.sh` — BASELINE.json checked against `baseline.schema.json` before the suite,
+  the emitted verdict checked against `verdict.schema.json` after (jq validator driven by
+  the schema files; required fields + enums); nonconformant verdict fails the job even on
+  PASS. Installer now ships `spec/schemas/` → `.gadd/schemas/`; missing schemas degrade to
+  a notice. `example-verdict.json` referenced from spec §5.
 - **2026-07-14 · v0.2 item 12:** Trivial/Standard/Major task tiers defined in spec §6
   (proportionality: how much gate a task buys; grader changes always Major); gate-matrix
   dispatch now references the tiers instead of assuming them. Also un-orphans
