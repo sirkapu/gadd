@@ -8,7 +8,8 @@ below (append-only) and in git.
 
 | Field | Value |
 |---|---|
-| Version | v0.2 — tagged and pushed to origin (publication option b: audits local-private, main rewritten pre-push) |
+| Version | v0.2 + v0.3 phase 1 (migration enablement + live-data fixes) — phases 1b/2 next |
+| Coverage proxy | 0→1 in flight: first deployment migrated onto upstream (replace-with-extension, local suite PASS); counts once the operator pushes it (deploy-adjacent = human, per OQ5 tier-3 rule) |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
 | Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
@@ -17,6 +18,19 @@ below (append-only) and in git.
 | Roadmap next | v0.3 (horizon set at v0.2 retro): measurement loop (escaped-regression ledger + verdict aggregation) · first upstream-governed repo · cc installer · dogfood gadd on gadd · ts_errors/test_files/lint metrics · then `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-14 · v0.3 PHASE 1 executed (OQ1–OQ7 ratified):** standing rule OQ6 written into
+  spec preamble + CONTRIBUTING. Wart fixed: installer/quickstart now do the two-commit
+  install-then-accept dance (OQ1). Extension mechanism: run-all executes `[0-9]*.sh` so a
+  deployment ratchet can gate as `90-*.sh`. First deployment migrated onto upstream
+  (replace-with-extension per OQ2): its richer ratchet stays gating as an extension, its
+  tuned bench and OWNERSHIP preserved (+ machine-readable gadd-governed block added),
+  baseline metrics measured not defaulted, local full-suite PASS. **Live data found two
+  latent upstream bugs in one run** — check 07 measured total LOC not max; the schema
+  validator broke on any verdict with findings (sandbox had only covered finding-free
+  verdicts) — both fixed + regression-tested; release-audit lesson logged. Phase 1b
+  started: `docs/metric-parity.md` is the parity spec (deployment's gating metrics become
+  upstream targets). Deployment push = operator step (deploy-adjacent, tier-3 human).
 
 - **2026-07-14 · v0.2 RETRO:** `audits/retro-v0.2.md` (local-private). Key lessons: name
   the decision not the output ("verdict" ambiguity); constants cited not restated; docs
