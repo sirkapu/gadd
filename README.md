@@ -20,7 +20,10 @@ you can govern what goes in, and what gets accepted.
 git clone https://github.com/sirkapu/gadd /tmp/gadd
 cd your-lovable-repo
 bash /tmp/gadd/bin/install.sh --adapter=lv
-git add -A && git commit -m "chore: install gadd-lv" && git push
+git add -A && git commit -m "chore: install gadd-lv"
+# accept the installation, then push both commits together:
+jq --arg sha "$(git rev-parse HEAD)" '.accepted_sha=$sha' gadd/BASELINE.json > t && mv t gadd/BASELINE.json
+git commit -am "gadd: accept $(git rev-parse --short HEAD)" && git push
 ```
 
 Done. From now on, every push runs the check suite and produces a verdict (`PASS`/`FAIL` + findings). Your agent's code is **integrated** when it lands, but only **accepted** when the ratchet is green.

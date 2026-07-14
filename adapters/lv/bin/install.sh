@@ -23,5 +23,11 @@ cat > gadd/BASELINE.json << JSON
   "metrics": { "skipped_tests": 0, "max_file_loc": 400 }
 }
 JSON
-echo "gadd-lv installed. Baseline = $(git rev-parse --short HEAD)."
-echo "Next: (1) commit & push, (2) paste AGENTS.md into Lovable Knowledge, (3) build."
+echo "gadd-lv installed. Baseline = $(git rev-parse --short HEAD) (pre-install HEAD)."
+echo "Next — commit the install, then ACCEPT it, then push BOTH commits together"
+echo "(otherwise the first ratchet run flags the installation itself as a lane violation):"
+echo '  1) git add -A && git commit -m "chore: install gadd-lv"'
+echo '  2) jq --arg sha "$(git rev-parse HEAD)" '"'"'.accepted_sha=$sha'"'"' gadd/BASELINE.json > t && mv t gadd/BASELINE.json'
+echo '     git commit -am "gadd: accept $(git rev-parse --short HEAD)"'
+echo '  3) git push'
+echo "  4) paste AGENTS.md into Lovable Knowledge, then build."
