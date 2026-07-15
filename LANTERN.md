@@ -21,6 +21,19 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-15 · BENCH FULLY GREEN — MERGE PACKET READY:** TEST_HONESTY PASS after 6
+  rounds (final two at strong tier, mutation-executed verification; its last catches
+  included a flipped North-Star rate formula that survived 76/76 green assertions —
+  caught hours before the first real measurement). Final bench: DATA_INTEGRITY PASS (7
+  rounds) · SECURITY PASS · CONTRACT_FIDELITY PASS · REGRESSION PASS · TEST_HONESTY PASS.
+  Corpus: 27 scenarios / 81 assertions, committed. Standing ruling #1 executed 6× total
+  this night under the ratified per-verdict wording (all logged; first-execution +
+  tier-upgrade judgment flagged for retro). MERGE PACKET: branch `mission/run-1-phase-2`,
+  13 commits, tree clean — merge is the operator's button; post-merge: residue-check +
+  fixture harness re-run, push, then the first fleet measurement. Remaining TH notes
+  (aggregation_failed class unexercised; MINOR tally unpinned) queued as phase-4
+  test-hardening candidates, not blockers.
+
 - **2026-07-15 · run #5 CLOSED — night aggregate:** Node instrument committed (`1d01454`,
   bash deleted same commit per ratified condition). Full bench: DI PASS (round 7, after
   7 rounds total — the adversary empirically verified its own kill-list dead) · SECURITY
