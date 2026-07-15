@@ -10,7 +10,8 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| North Star instrument | WIRED (phase 2, mission-loop run #1, branch `mission/run-1-phase-2`): per-repo `gadd/ESCAPED.jsonl` ledger + `spec/schemas/escaped.schema.json` + `bin/gadd-fleet.sh` aggregation (output local-only). First measurement pending live data + operator's first fleet run — until then the North Star reads "unmeasured" honestly |
+| Active mission branch | `mission/run-1-phase-2` — merge HOLD until full bench green; scheduled runs starting on main pre-merge must check this branch out first |
+| North Star instrument | RULING (b) RATIFIED 2026-07-14: reimplement as zero-dep Node (Standard, single artifact) — behavior contract verbatim (schema admission, anomaly reason classes, null-never-zero, north_star clean-only), bash version DELETED same commit, small pure helpers shareable with the parity ratchet (no premature framework). ACCEPTANCE ORDER NON-NEGOTIABLE: all 16 DI fixtures green BEFORE DI re-runs, then FULL bench, then merge packet. Ledger + schema stay as shipped |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
 | Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
@@ -19,6 +20,17 @@ below (append-only) and in git.
 | Roadmap next | QUEUED for next /mission-loop: phase 1b (metric parity per `docs/metric-parity.md`) · then phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-14 · run #4 ARBITRATION recorded + night-mode riders:** option (b) RATIFIED —
+  zero-dep Node reimplementation of gadd-fleet, conditions in state row; option (c)
+  rejected and ledgered ("substrate classes get reimplemented, not waived"). Riders
+  implemented: standing rulings' first autonomous execution highlighted in morning brief
+  + reviewed at next retro (approval-matrix template); scheduled chain checks out the
+  lantern's active mission branch if launched from main pre-merge (mission-loop). RUN #5
+  QUEUE: Node reimpl → 16 fixtures green → DI re-run → full bench → merge packet
+  (human button). Phase 1b in parallel per park-and-continue. Run #5 executes in a fresh
+  session — this one is far past the context threshold (the global stop the loop
+  enforces for exactly this reason).
 
 - **2026-07-14 · NIGHT MODE ratified (Standard, applied on mission branch):**
   mission-loop amended — tier-3/ratification are now ITEM-LEVEL PARKS (decision packet
