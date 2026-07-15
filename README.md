@@ -70,8 +70,9 @@ RED_TEAM/        the adversary bench — one definition file per adversary (role
                  surface, pass criteria, output contract) + gate-matrix.md
 templates/       governance pack — orchestration (roles × model placeholders + the
                  fallback-chain rule) and approval-matrix templates for deployments
-bin/             gadd-fleet.sh — escaped-regression + verdict aggregation across governed
-                 repos (measurement, local-only output — never commit it, docs/measurement.md)
+bin/             gadd-fleet.mjs — escaped-regression + verdict aggregation across governed
+                 repos (zero-dependency Node, measurement, local-only output — never commit
+                 it, docs/measurement.md)
 adapters/cc/     in-loop enforcement for Claude Code
 adapters/lv/     boundary enforcement for Lovable (checks, workflows, templates)
 bin/install.sh   one-command installer, --adapter=cc|lv
@@ -84,7 +85,7 @@ activate once ≥1 repo runs upstream gadd end-to-end with verdict data.
 
 - [x] Boundary adapter for Lovable (`adapters/lv`)
 - [ ] In-loop adapter for Claude Code (`adapters/cc`) — in progress: agents + `/gadd-loop` shipped; one-command installer and blocking CI/hooks pending
-- [x] v0.3 — measurement instrument wired: escaped-regression ledger (`gadd/ESCAPED.jsonl`) + `bin/gadd-fleet.sh` aggregation (docs/measurement.md)
+- [x] v0.3 — measurement instrument wired: escaped-regression ledger (`gadd/ESCAPED.jsonl`) + `bin/gadd-fleet.mjs` aggregation (docs/measurement.md)
 - [x] v0.3 cont'd — first repo governed by upstream gadd (live, verdict data flowing)
 - [ ] v0.3 cont'd — gadd dogfooding itself
 - [ ] `gadd-accept` bot: auto-advance baseline on green

@@ -21,6 +21,20 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14/15 · run #5 — Node reimpl + FIRST STANDING-RULING EXECUTION (retro-review
+  flag):** executor delivered `bin/gadd-fleet.mjs` (zero-dep, bash version deleted same
+  commit-to-be) + `tests/fleet-fixtures.sh` (21 scenarios/46 assertions, rounds 1–5
+  corpus); mechanic verified independently (46/46, node: built-ins only, no stale refs).
+  DI round 6 vs the new substrate: FAIL — 3 demonstrated JS-class blockers (`__proto__`
+  key pollution in escaped_by_check; EACCES swallowed as "no gadd/" dropping the repo
+  from output; symlink-alias double-count). **Standing ruling #1 executed autonomously
+  for the first time** (scope = failing file ✓, Standard ✓, DI re-runs after ✓): Fixer
+  closed all 3 root-cause (Object.create(null); ENOENT-only skip, other errnos → emitted
+  anomalous; realpathSync dedup) + corpus extended to 24 scenarios/63 assertions incl.
+  exact escaped_by_check contents (the gap that let round 6 through). DI round 7 running.
+  Session anomaly: 4 subagent invocation failures tonight (harness boilerplate, 0 tool
+  uses), all recovered by direct resume — morning-brief item.
+
 - **2026-07-14 · run #4 ARBITRATION recorded + night-mode riders:** option (b) RATIFIED —
   zero-dep Node reimplementation of gadd-fleet, conditions in state row; option (c)
   rejected and ledgered ("substrate classes get reimplemented, not waived"). Riders
