@@ -18,9 +18,27 @@ below (append-only) and in git.
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | QUEUED for next /mission-loop: phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`, test-hardening notes, R3 dispatch watchdog — ratified 2026-07-15: 0-tool-use completions <15s = invocation failure, auto-resume once before any strike or verdict counts) · later: `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | QUEUED for next /mission-loop: phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`, test-hardening notes, R3 dispatch watchdog — ratified 2026-07-15: 0-tool-use completions <15s = invocation failure, auto-resume once before any strike or verdict counts · SEED SELF-APPLICATION per `audits/gadd-seed-payload.md`, ratified 2026-07-15 Standard: VERBATIM sections word-for-word with union-reconstruction + manifest if damaged, [DERIVE] slots as annotated (routing from `git ls-tree` tracked-only; session-model half operator-supplied), "Explicitly OUT" list binding, includes the §8 rejection-ledger entry with its transit corollary) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-15 · DISPATCH RECONCILED — D executed, E queued (dispatch crossed in transit
+  with the run-6 execution):** the operator's superseding dispatch sequenced D (residue
+  emergency) before the merge; A/B/C had already executed. Outcome mapping: D(1) achieved
+  pre-push (entries reworded, never-pushed branch history scrubbed — nothing new reached
+  main). Executed now: D(2) blocklist word-boundary pattern rewritten POSIX-safe
+  (validated against a known-leaked historical blob AND clean HEAD), second deployment
+  token present; D(3) `bin/residue-check.sh` hardened — engine canary self-test (fail-loud
+  exit 2 before any "clean" can be declared) + PCRE-escape dialect lint (rejects `\b`-class
+  patterns loudly); D(4) genuinely green — canary passed, both failure modes demonstrated
+  live (dialect lint fired; positive hit fired). NEW FINDING → parked packet: one register
+  token was ALREADY public before this session — 10 intermediate commits reachable from
+  public main (and from the stale pushed run-1 branch) carry one bare token each in
+  LANTERN.md history; it shipped with the phase-2 merge because the gate scanned only the
+  tip, never intermediate commits. Cleanup = public-history rewrite + force-push = tier-3
+  hard stop, options packet with the operator. E RATIFIED (Standard, phase 4): seed
+  self-application per `audits/gadd-seed-payload.md` — queued in roadmap row with its
+  binding conditions.
 
 - **2026-07-15 · run #6 approvals EXECUTED (operator-delegated):** R1–R4 RATIFIED and
   written in: standing ruling #1 rewritten at invariant grade (scope = the files the
