@@ -10,16 +10,44 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| Active mission branch | `mission/run-1-phase-2` — merge HOLD until full bench green; scheduled runs starting on main pre-merge must check this branch out first |
-| North Star instrument | RULING (b) RATIFIED 2026-07-14: reimplement as zero-dep Node (Standard, single artifact) — behavior contract verbatim (schema admission, anomaly reason classes, null-never-zero, north_star clean-only), bash version DELETED same commit, small pure helpers shareable with the parity ratchet (no premature framework). ACCEPTANCE ORDER NON-NEGOTIABLE: all 16 DI fixtures green BEFORE DI re-runs, then FULL bench, then merge packet. Ledger + schema stay as shipped |
+| Active mission branch | `mission/run-6-phase-1b` (phase 2 MERGED to main `051c6bc`, pushed, post-merge gate green) |
+| North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). CAVEAT (instrument-reported): both deployment ledgers were missing at measurement — the zero means "nothing recorded" until `gadd/ESCAPED.jsonl` exists in both repos (run #6 Trivial item) |
+| Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
 | Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | QUEUED for next /mission-loop: phase 1b (metric parity per `docs/metric-parity.md`) · then phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`) · later: `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | QUEUED for next /mission-loop: phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`, test-hardening notes, R3 dispatch watchdog — ratified 2026-07-15: 0-tool-use completions <15s = invocation failure, auto-resume once before any strike or verdict counts) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-15 · run #6 CLOSED — phase 1b bench-green (`078894f`):** metric-parity gate
+  shipped: engine + check 10 + schema block + 15-scenario/40-assertion corpus. Major-tier
+  full bench 5/5 — DI PASS round 3 (4 demonstrated fabrication paths fixed: spawn-fail,
+  crash-exit, typed-config silent-skip, exempt-prefix swallow), TH PASS round 2
+  (eslint_disables + .d.ts exemption pinned), SECURITY/CF/REGRESSION round 1. Standing
+  ruling #1 executed 3× this run (DI×2, TH×1; two disclosed interpretations: multi-file
+  verdict scope, and the R1 convergence pattern observed at DI 2→2 — round granted on
+  narrowing class, would PARK on a third). Fleet corpus untouched (81/81). Adoption
+  notes for deployments: parity gating goes dark if source lives outside src/ (by-spec,
+  flagged); any-pattern misses positional generics (spec-level, shared with parity
+  source). PARKED ON OPERATOR: merge run-6 branch → main; R1–R4 ratification; pushes of
+  the two governed-repo ledger commits. Deployment-side next: the first deployment adopts
+  parity.gating → its 90-extension retires.
+
+- **2026-07-15 · mission-loop run #6 (post-merge):** operator confirms merge `051c6bc` +
+  post-merge gate green. **NORTH STAR FIRST MEASURED VALUE logged: escaped_rate = 0 over
+  9 accepted pushes** (17 verdicts, 0 anomalies, 30 findings caught pre-acceptance) —
+  with the instrument's own caveat: zero is "nothing recorded" until the ledgers exist.
+  Trivial item DONE: `gadd/ESCAPED.jsonl` committed in both governed repos (first
+  deployment `6f33ea4`, second `0fb485a`; pushes = operator). Packet rule made permanent (state row +
+  mission-loop.md). NIGHT-1 RETRO OPEN: `audits/retro-night-1.md` (local-private) — six
+  ruling-#1 executions reviewed (incl. the Fixer's evidence-based refusal, the system's
+  best moment), tier-upgrade call assessed correct-but-unilateral, invocation-failure
+  class documented (5/5 recovered), TH note-gaps queued. FOUR PROPOSALS R1–R4 awaiting
+  ratification (convergence guard, tier-floor rule, dispatch watchdog, retro cadence).
+  Next item: phase 1b (metric parity).
 
 - **2026-07-15 · BENCH FULLY GREEN — MERGE PACKET READY:** TEST_HONESTY PASS after 6
   rounds (final two at strong tier, mutation-executed verification; its last catches

@@ -46,6 +46,11 @@ On ANY of these: write the handoff (lantern + one-paragraph state), emit the STA
 
 The loop may be relaunched on a schedule (launchd/cron): `claude -p "$(cat .claude/commands/mission-loop.md)"`. Each run resumes from the lantern; runs are bounded by the existing global stops (task budget, context threshold, no-progress). The chain reads this loop from the checked-out working tree: if a scheduled run finds itself on the default branch while the lantern names an active mission branch pre-merge, it checks out that branch FIRST, then proceeds. Tier-3 hard stops never widen — merge/push/deploy/graders/baselines/secrets stay human, day or night. A scheduled run that finds only parked work reports QUEUE EMPTY and exits — that is the system working, not failing.
 
+**Retro cadence (ratified 2026-07-15):** every scheduled-chain night ends with a night
+retro — local-private, in `audits/` — reviewing all standing-ruling executions, Director
+judgment calls, and session anomalies; its proposals surface for ratification in the next
+morning brief.
+
 ## STATUS block (mandatory, last output of every run)
 
 ```
@@ -57,8 +62,13 @@ Metrics moved: [deltas with guard status]
 Standing rulings executed: [ruling → item → outcome, or "none"]
 Stopped because: [global stop condition #]
 YOUR MOVE: [the exact human action(s), phrased for one-tap decisions —
-  approve/reject items, push X, answer Q, or "relaunch the loop"]
+  approve/reject items, answer Q, or "relaunch the loop"]
 ```
+
+**Packet rule (permanent, ratified 2026-07-15):** YOUR MOVE never contains terminal
+commands — packets end in "reply approve and I execute"; execution is the loop's job on
+approval. The operator may reply in plain language, any language (incl. Spanish); the
+loop translates the reply to protocol.
 
 **Morning brief:** when a run detects prior same-night runs in the lantern, its final
 STATUS aggregates the whole night instead: merge-ready branches, all parked decisions
