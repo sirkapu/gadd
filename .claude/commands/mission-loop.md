@@ -57,8 +57,13 @@ Metrics moved: [deltas with guard status]
 Standing rulings executed: [ruling → item → outcome, or "none"]
 Stopped because: [global stop condition #]
 YOUR MOVE: [the exact human action(s), phrased for one-tap decisions —
-  approve/reject items, push X, answer Q, or "relaunch the loop"]
+  approve/reject items, answer Q, or "relaunch the loop"]
 ```
+
+**Packet rule (permanent, ratified 2026-07-15):** YOUR MOVE never contains terminal
+commands — packets end in "reply approve and I execute"; execution is the loop's job on
+approval. The operator may reply in plain language, any language (incl. Spanish); the
+loop translates the reply to protocol.
 
 **Morning brief:** when a run detects prior same-night runs in the lantern, its final
 STATUS aggregates the whole night instead: merge-ready branches, all parked decisions
