@@ -20,6 +20,23 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · mission-loop run #3 STOPPED — DI round 4 red, structural diagnosis:**
+  root-cause fix applied + verified (verdict type guard, check-key coercion, repo-always-
+  emitted fallback; all 9 prior fixtures green, fallback adversarially probed). DI then
+  demonstrated two NEW paths — a stray scalar inside `findings[]` aborts aggregation and
+  the fallback zeroes VALID ledger data into the north-star sum (truth 5 escaped,
+  reported 2: the headline metric silently under-reports); non-array `findings` drops
+  findings uncounted. **Architect diagnosis: guard-by-guard hardening loses structurally
+  — the malformed-shape space is combinatorial. Proposed redesign (awaiting
+  ratification): SCHEMA ADMISSION — validate every verdict against the shipped
+  `verdict.schema.json` and every ledger line against `escaped.schema.json` before
+  aggregation (whitelist known-good shapes, the run-all.sh validator pattern);
+  non-conformant = anomaly with counts reported "unavailable", never zeros; north_star
+  sums CLEAN repos only and discloses anomalous ones.** Cap discipline held: no
+  self-granted round. Merge HOLD. Phase 1b not started (context). All DI rounds 1–4
+  fixtures earmarked for `tests/` per the ratified "if it cost an arbitration, it's a
+  regression test forever" rule.
+
 - **2026-07-14 · mission-loop run #2 — arbitrated fixes applied, DI still red:** Fixer
   (separate instance) applied rulings 1–3, all mechanically verified: fleet verdict
   unreadable/empty anomaly guards (parse_errors + WARN, never vanished); OWNERSHIP
