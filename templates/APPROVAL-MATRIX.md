@@ -34,6 +34,11 @@ highlighted in the morning brief and reviewed at the next retro.
    **re-runs** after. **Convergence guard:** if the same adversary's blocker count fails
    to decrease across two consecutive pre-approved rounds on one item, the next red
    verdict PARKS regardless of this ruling. Anything beyond = park.
+2. **(R5, ratified 2026-07-15)** Every public push is preceded by BOTH a rev-range
+   residue scan (`bin/residue-check.sh <remote-tip>..<local-tip>` — every commit, every
+   blocklist pattern, engine canary) AND a commit-metadata scan (authors, committers;
+   taggers on tag pushes) over the same range — the range mode runs both. Any hit blocks
+   the push. Dirty unpushed history is scrubbed-and-rebuilt, never pushed dirty.
 
 ## Tier-3 / Major — {{HUMAN}} approves, every time
 
