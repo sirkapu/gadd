@@ -10,7 +10,7 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| Active mission branch | none — run-6 MERGED to main `84f77ba` (--no-ff), pushed, post-merge gate green. Pre-push scrub rebuilt the branch history (phase-1b commit `078894f` → `cee8f3a`) |
+| Active mission branch | none — run-6 merged, then PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization, operator-ratified): public main `9777d31`, v0.2 recreated `a2a8775`. Every pre-rewrite SHA cited in log entries below is a stale pointer — disclosed, not rewritten |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
@@ -21,6 +21,33 @@ below (append-only) and in git.
 | Roadmap next | QUEUED for next /mission-loop: phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`, test-hardening notes, R3 dispatch watchdog — ratified 2026-07-15: 0-tool-use completions <15s = invocation failure, auto-resume once before any strike or verdict counts · SEED SELF-APPLICATION per `audits/gadd-seed-payload.md`, ratified 2026-07-15 Standard: VERBATIM sections word-for-word with union-reconstruction + manifest if damaged, [DERIVE] slots as annotated (routing from `git ls-tree` tracked-only; session-model half operator-supplied), "Explicitly OUT" list binding, includes the §8 rejection-ledger entry with its transit corollary) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-15 · PUBLIC HISTORY REWRITTEN (F(a) + identity, operator-ratified, receipts
+  green):** one filter-branch pass from the root over all 47 commits closed three
+  residue classes: (1) register-token — 10 commits carried one bare deployment token in
+  LANTERN.md history, published inside the phase-2 merge because scanning was tip-only;
+  (2) retired-path — 23 commits (2026-07-11→14; 12 of them ancestors of v0.2, incl. the
+  root) carried the deployment-era blocker/prompts path root in installer + templates
+  since v0.1; (3) identity — 10 commits authored under a personal email (a blocklisted
+  name in public commit METADATA, structurally invisible to blob scans) normalized to
+  the ratified noreply identity; Q7's "accepted linkage" decision is superseded — the
+  linked commit no longer exists. v0.2 recreated annotated on the rewritten ancestry:
+  its tree differs from the old tag's tree by EXACTLY the 4 path-scrub lines (receipt
+  diff shown in-session) — byte-identity there was mathematically incompatible with the
+  clean-full-history criterion, and clean won as the ratified hard requirement; main's
+  tip tree IS byte-identical to pre-rewrite. Receipts: F+ sweep 11 patterns × 47 commits
+  clean, canary passing; metadata scan clean, single identity across all history; stale
+  run-1 branch deleted from origin; pre-rewrite history preserved ONLY on local
+  `private/*` refs, never pushed; accept_authors continuity vacuously safe (check 02
+  unwired on gadd until phase-4 dogfood — the future-seeded allowlist email matches the
+  normalized identity; deployment repos untouched); gates 40/40 + 81/81. PERMANENT
+  CAVEATS: crawler-scraped copies of pre-rewrite history plausibly exist (33 unique
+  cloners in the trailing 14-day window) and are not recallable — the rewrite protects
+  the canonical source going forward, it does not erase the past everywhere; "zero
+  engaged users" (0 forks/stars/watchers) is the measured claim, "zero copies" is never
+  claimed; orphaned pre-rewrite objects may remain SHA-reachable on GitHub until GC.
+  F+ range mode proposed as ruling R5 in the night-1 retro — the evidence is this very
+  incident: hand-typed pattern subsets missed what the full-blocklist sweep caught.
 
 - **2026-07-15 · DISPATCH RECONCILED — D executed, E queued (dispatch crossed in transit
   with the run-6 execution):** the operator's superseding dispatch sequenced D (residue
