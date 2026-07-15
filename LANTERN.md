@@ -10,7 +10,8 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| Active mission branch | none — run-6 merged, then PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization, operator-ratified): public main `9777d31`, v0.2 recreated `a2a8775`. Every pre-rewrite SHA cited in log entries below is a stale pointer — disclosed, not rewritten |
+| Active mission branch | none — run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
+| Constitution | Ratifier-in-loop PARTIALLY installed 2026-07-15: `.claude/agents/gadd-ratifier.md` live (SR-1..8, tier-3 human list, verdict contract; charter verbatim stays local-private, item 5 anonymized per SR-5). PARKED ON OPERATOR (platform permission layer declined the loop rewiring itself — not retried by design): mission-loop.md packet-routing amendment + launchd schedule wiring |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
@@ -21,6 +22,34 @@ below (append-only) and in git.
 | Roadmap next | QUEUED for next /mission-loop: phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`, test-hardening notes, R3 dispatch watchdog — ratified 2026-07-15: 0-tool-use completions <15s = invocation failure, auto-resume once before any strike or verdict counts · SEED SELF-APPLICATION per `audits/gadd-seed-payload.md`, ratified 2026-07-15 Standard: VERBATIM sections word-for-word with union-reconstruction + manifest if damaged, [DERIVE] slots as annotated (routing from `git ls-tree` tracked-only; session-model half operator-supplied), "Explicitly OUT" list binding, includes the §8 rejection-ledger entry with its transit corollary) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-15 · mission-loop run #7 — wave "self-governing gadd" (dispatch arrived
+  transit-damaged; repairs reconstructed from readable sources, manifest disclosed
+  in-session):** R5 RATIFIED and wired (commit-metadata scan in residue-check range
+  mode, verified against a known personal-email commit; ruling #2 in the matrix).
+  Stale local branches pruned. ITEM E (seed self-application, Major): payload v2
+  installed — root CLAUDE.md (37 lines) + 10 folder CLAUDE.mds + `context/` (ubc
+  verbatim; tooling with the operator-supplied session half) + AGENTS.md mirror +
+  `bin/seed-audit.sh` + §8 ledger row. Bench 5/5: SECURITY/DATA_INTEGRITY/
+  TEST_HONESTY/REGRESSION PASS round 1 (TH mutation-EXECUTED), CONTRACT_FIDELITY FAIL
+  round 1 (one verbatim-fidelity blocker) → standing-ruling-#1 Fixer round (scope: the
+  named file) → CF PASS round 2. RATIFIER INSTALLED (`.claude/agents/gadd-ratifier.md`).
+  R-d DEMONSTRATED end-to-end: merge packet → Ratifier APPROVE-CONDITIONAL with 5
+  receipts + 6 STOP conditions — it independently caught that the branch installs its
+  own charter (tier-3 item 7) and refused to self-ratify without the operator's
+  readable-source authorization (produced: the dispatch + the charter file's own
+  install directive); its SR-8 flag ("change to the charter" vs "first install") goes
+  to the retro. Its lantern line, verbatim: "A merge that installs the Ratifier's own
+  charter cannot be self-ratified into main on the Ratifier's word alone — the
+  deterministic gates and the operator's item-7 authorization are the receipts, and a
+  degraded residue scan is a red guard, not a pass." All receipts produced; merged
+  --no-ff, pushed under R5 (content+metadata clean, canary passing). QUEUED (monotonic
+  tightenings from bench notes): metadata scan → commit-message surface + system-grep
+  canary + honest banner wording (DI); seed-audit parser keyed to target column (DI);
+  explicit git-log status check (SEC); bench-contract line "adversaries never
+  checkout — `git show` only" (one adversary switched the session's branch mid-bench;
+  restored, nothing lost — the run's single anomaly). PARKED ON OPERATOR: the two
+  permission-layer-declined items in the Constitution state row.
 
 - **2026-07-15 · PUBLIC HISTORY REWRITTEN (F(a) + identity, operator-ratified, receipts
   green):** one filter-branch pass from the root over all 47 commits closed three
