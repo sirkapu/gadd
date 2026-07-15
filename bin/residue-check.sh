@@ -6,6 +6,13 @@
 # extended-regex pattern per line; blank lines and # comments ignored.
 # Absent or empty blocklist -> notice, exit 0 (degraded). Any hit -> exit 1.
 #
+# USAGE: bin/residue-check.sh [<rev-range>]
+#   No argument  -> scan tracked files in the working tree (release-audit mode).
+#   <rev-range>  -> scan EVERY COMMIT in the range (e.g. origin/main..main): a push
+#                   publishes every commit in it, not just the tip — tip-only scanning
+#                   is how one leaked line reached the public remote inside intermediate
+#                   commits (2026-07-15). Run this before every push.
+#
 # PATTERN DIALECT: POSIX ERE ONLY. PCRE-style escapes (\b \d \w \s ...) are REJECTED
 # loudly below — `git grep -E` treats them as dead syntax on some platforms (proven
 # 2026-07-15: a \bevo\b pattern silently matched nothing, a fabricated-clean in this
@@ -13,6 +20,14 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 BLOCKLIST="audits/residue-blocklist.txt"
+RANGE="${1:-}"
+commits=""
+if [ -n "$RANGE" ]; then
+  commits="$(git rev-list "$RANGE")" || { echo "invalid rev-range '$RANGE'" >&2; exit 2; }
+  if [ -z "$commits" ]; then
+    echo "notice: rev-range '$RANGE' contains 0 commits — nothing new to publish"
+  fi
+fi
 
 # --- Engine canary self-test: runs FIRST; no "clean" may be declared without it.
 # The pattern below must match the canary token GADD_RESIDUE_CANARY_TOKEN in this
@@ -41,11 +56,27 @@ while IFS= read -r p; do
       status=1
       continue;;
   esac
-  if hits="$(git grep -n -i -E -- "$p" 2>/dev/null)"; then
-    echo "RESIDUE: pattern '$p' matches tracked files:"
-    printf '%s\n' "$hits"
-    status=1
+  if [ -n "$RANGE" ]; then
+    for c in $commits; do
+      if hits="$(git grep -n -i -E -- "$p" "$c" 2>/dev/null)"; then
+        echo "RESIDUE: pattern '$p' matches commit $c:"
+        printf '%s\n' "$hits"
+        status=1
+      fi
+    done
+  else
+    if hits="$(git grep -n -i -E -- "$p" 2>/dev/null)"; then
+      echo "RESIDUE: pattern '$p' matches tracked files:"
+      printf '%s\n' "$hits"
+      status=1
+    fi
   fi
 done <<< "$patterns"
-[ "$status" -eq 0 ] && echo "residue check: clean ($(printf '%s\n' "$patterns" | wc -l | tr -d ' ') patterns, 0 hits; engine canary passed)"
+if [ "$status" -eq 0 ]; then
+  if [ -n "$RANGE" ]; then
+    echo "residue check: clean ($(printf '%s\n' "$patterns" | wc -l | tr -d ' ') patterns × $(printf '%s' "$commits" | grep -c . || true) commits in '$RANGE', 0 hits; engine canary passed)"
+  else
+    echo "residue check: clean ($(printf '%s\n' "$patterns" | wc -l | tr -d ' ') patterns, 0 hits; engine canary passed)"
+  fi
+fi
 exit "$status"
