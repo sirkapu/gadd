@@ -72,11 +72,14 @@ for repo in "$@"; do
       echo "WARN: gadd-fleet: $f verdict file empty — counted as anomaly" >&2
       continue
     fi
-    if printf '%s' "$content" | jq empty >/dev/null 2>&1; then
+    if ! printf '%s' "$content" | jq empty >/dev/null 2>&1; then
+      parse_errors=$((parse_errors + 1))
+      echo "WARN: gadd-fleet: $f is malformed JSON — fail-open, counted in parse_errors" >&2
+    elif printf '%s' "$content" | jq -e 'type=="object"' >/dev/null 2>&1; then
       valid_verdicts+=("$content")
     else
       parse_errors=$((parse_errors + 1))
-      echo "WARN: gadd-fleet: $f is malformed JSON — fail-open, counted in parse_errors" >&2
+      echo "WARN: gadd-fleet: $f verdict file not a JSON object — counted as anomaly" >&2
     fi
   done
 
@@ -138,7 +141,7 @@ for repo in "$@"; do
       },
       escaped_total: ($escaped | length),
       escaped_by_check: (
-        [$escaped[] | (.check // "unknown")] | group_by(.) | map({(.[0]): length}) | add // {}
+        [$escaped[] | (.check // "unknown" | tostring)] | group_by(.) | map({(.[0]): length}) | add // {}
       ),
       window: {
         first: (if $first == "" then null else $first end),
@@ -146,6 +149,28 @@ for repo in "$@"; do
       },
       parse_errors: $parse_errors
     }')"
+  jq_rc=$?
+
+  # CLASS-CLOSER: a repo with a gadd/ dir must NEVER vanish from the rollup.
+  # If the aggregation jq failed or produced no output, emit a fallback anomaly
+  # object so the repo is still counted (with counts unavailable, parse_errors>=1).
+  if [ "$jq_rc" -ne 0 ] || [ -z "$repo_obj" ]; then
+    echo "WARN: gadd-fleet: aggregation failed for $repo — emitted as anomaly, counts unavailable" >&2
+    repo_obj="$(jq -n \
+      --arg path "$repo" \
+      --argjson parse_errors "$((parse_errors + 1))" '
+      {
+        path: $path,
+        verdicts_total: 0,
+        pass_count: 0,
+        fail_count: 0,
+        findings: { CRITICAL: 0, MAJOR: 0, MINOR: 0 },
+        escaped_total: 0,
+        escaped_by_check: {},
+        window: { first: null, last: null },
+        parse_errors: $parse_errors
+      }')"
+  fi
 
   repo_objs+=("$repo_obj")
 done
