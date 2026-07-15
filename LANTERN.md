@@ -21,6 +21,21 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-15 · run #5 CLOSED — night aggregate:** Node instrument committed (`1d01454`,
+  bash deleted same commit per ratified condition). Full bench: DI PASS (round 7, after
+  7 rounds total — the adversary empirically verified its own kill-list dead) · SECURITY
+  PASS · CONTRACT_FIDELITY PASS · REGRESSION PASS (after vault-noise remediation it
+  prescribed: 11 Obsidian files unstaged pre-commit, `.obsidian/`+`GAD/` gitignored,
+  leak-probe clean) · TEST_HONESTY RED: 2 one-line assertion gaps (anomalies.total on
+  non-malformed classes; north_star.clean_repos multi-clean) — **fix PARKED: standing
+  ruling #1 ("ONE root-cause round per item") was already executed 2× on this item under
+  a permissive per-adversary reading; a 3rd exceeds the letter. Ruling-scope reading
+  needs the operator (retro item — the rider exists for exactly this).** Corpus at 25
+  scenarios/68 assertions. Session anomalies: 4 subagent invocation failures, all
+  recovered by direct resume. PARKED DECISIONS: (1) TH two-assertion fix + re-run,
+  (2) ruling-#1 scope reading, (3) merge (HOLD until bench fully green), (4) operator
+  fleet run, (5) phase 1b untouched — next run's first pick.
+
 - **2026-07-14/15 · run #5 — Node reimpl + FIRST STANDING-RULING EXECUTION (retro-review
   flag):** executor delivered `bin/gadd-fleet.mjs` (zero-dep, bash version deleted same
   commit-to-be) + `tests/fleet-fixtures.sh` (21 scenarios/46 assertions, rounds 1–5
