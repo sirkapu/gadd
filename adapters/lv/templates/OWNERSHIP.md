@@ -11,6 +11,7 @@ AGENTS.md
 OWNERSHIP.md
 docs/standards/*
 ai-specs/**
+# Replace with your deployment's agent-prompt lane; templates ship placeholders, never real paths
 {{AGENT_PROMPTS_DIR}}/*
 scripts/**
 .gadd/**

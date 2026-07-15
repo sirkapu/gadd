@@ -19,6 +19,16 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · RESIDUE SWEEP (Standard, ratified — closes audit contradiction C6):**
+  private names removed from tracked files: the v0.2 RETRO entry below now uses the
+  anonymous register; `templates/OWNERSHIP.md` carries a `{{AGENT_PROMPTS_DIR}}/*`
+  placeholder lane instead of a deployment's real path; `templates/AGENTS.md` rule 7
+  generalized to domain-sensitive data. Recurrence guard: release audits now run
+  `bin/residue-check.sh`, which greps tracked files against the local, gitignored
+  `audits/residue-blocklist.txt` (absent blocklist degrades to a notice — committing it
+  would leak the very names it protects). **STANDING RULE: public lantern entries use
+  the deployment-anonymous register; private names only ever appear in local-private
+  audits.**
 - **2026-07-14 · v0.3 PHASE 1 CLOSED (operator-verified cross-repo state):** the human
   push step is done — migration commits, gadd accept, and RED_TEAM tier mapping are live
   on the first deployment's origin (tip `6b25ef5`); the gadd-ratchet workflow runs on its
@@ -64,8 +74,8 @@ below (append-only) and in git.
   written as intention read as claims; publication review must include tag/commit
   messages; release audits keep a functional sandbox pass. Guards: G1 HOLDS, G2 HARDENED,
   G5 PUBLISHED; G3 unmeasured, G4 red (v0.3). v0.3 sequencing hypothesis CONFIRMED with
-  two amendments (wart→phase 1; the reference deployment migrates replace-with-extension so its ratchet never
-  loosens); horizon proposed ≈2026-08-18 at 5 op-h/wk, milestones gate. 7 open questions
+  two amendments (wart→phase 1; the reference deployment migrates replace-with-extension
+  so its ratchet never loosens); horizon proposed ≈2026-08-18 at 5 op-h/wk, milestones gate. 7 open questions
   (OQ1–OQ7) awaiting ratification — v0.3 does not start until then.
 - **2026-07-14 · PUBLICATION (option b, ratified):** preconditions verified — origin/main
   at `f66d686`; all 11 rewritten commits proven local-only (both range directions checked).
