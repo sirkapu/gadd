@@ -9,16 +9,35 @@ below (append-only) and in git.
 | Field | Value |
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
-| Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes). North Star itself still unmeasured — the instrument is phase 2 |
+| Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
+| North Star instrument | WIRED (phase 2, mission-loop run #1, branch `mission/run-1-phase-2`): per-repo `gadd/ESCAPED.jsonl` ledger + `spec/schemas/escaped.schema.json` + `bin/gadd-fleet.sh` aggregation (output local-only). First measurement pending live data + operator's first fleet run — until then the North Star reads "unmeasured" honestly |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
 | Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | QUEUED for next /mission-loop: phase 1b (metric parity per `docs/metric-parity.md`) + phase 2 (escaped-regression ledger + aggregation) — both designed against live verdict data · then phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`) · later: `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | QUEUED for next /mission-loop: phase 1b (metric parity per `docs/metric-parity.md`) · then phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · Blocker-notes lane renamed (Standard, ratified — residue follow-up):**
+  the deployment-era blocker-notes path → `gadd/lv-blockers/`, consolidating gadd's
+  entire target-repo footprint under the `gadd/` namespace it already owns (installer +
+  repair template updated; the repair template now lands in `gadd/`). Existing
+  deployments keep their local convention (deployment-owned); new installs get the
+  neutral path. The retired path root added to the local residue blocklist so the guard
+  enforces the retirement. Junk brace-expansion directory at repo root removed (empty,
+  untracked).
+- **2026-07-14 · mission-loop run #1 — phase 2 executed (Standard):** North Star
+  instrument built on branch `mission/run-1-phase-2` by dispatched executor (Director
+  wrote no production code): `gadd/ESCAPED.jsonl` per-repo ledger + escaped schema +
+  `bin/gadd-fleet.sh` fleet aggregation (local-only output) + `docs/measurement.md`.
+  Deterministic gate: mechanic-verified independently, 9/9 assertions + edge cases, zero
+  disk writes. Bench round 1 (4 triggered adversaries, isolated): SECURITY PASS ·
+  DATA_INTEGRITY FAIL (2 real blockers: non-object ledger line silently dropped a whole
+  repo from the rollup; unreadable ledger read as healthy zero) · CONTRACT_FIDELITY FAIL
+  (README/lantern done-pending contradiction) · REGRESSION invocation failed (no verdict
+  = fail-closed, re-run). Fixer applied all three; round 2 re-ran only failed adversaries.
 - **2026-07-14 · RESIDUE SWEEP (Standard, ratified — closes audit contradiction C6):**
   private names removed from tracked files: the v0.2 RETRO entry below now uses the
   anonymous register; `templates/OWNERSHIP.md` carries a `{{AGENT_PROMPTS_DIR}}/*`

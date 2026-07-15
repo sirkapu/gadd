@@ -5,6 +5,7 @@ SRC="$(cd "$(dirname "$0")/.." && pwd)"
 [ -d .git ] || { echo "run me from the target repo root"; exit 1; }
 
 mkdir -p .gadd/checks/lib .gadd/schemas .github/workflows gadd/verdicts gadd/lv-blockers
+[ -f gadd/ESCAPED.jsonl ] || touch gadd/ESCAPED.jsonl   # escaped-regression ledger, one JSONL line per defect (see docs/measurement.md)
 cp -r "$SRC/checks/." .gadd/checks/
 cp "$SRC/../../spec/schemas/"*.json .gadd/schemas/
 cp "$SRC/workflows/"gadd-*.yml .github/workflows/
