@@ -12,6 +12,9 @@ See `spec/BOUNDARY-GOVERNANCE.md` for the model; this adapter ships:
 Config via env in the workflow if your layout differs: `GADD_CONTRACT_DIR`, `GADD_MIGRATIONS_DIR`,
 `GADD_SHARED_DIR`.
 
+Note: the `OWNERSHIP.md` template ships example lanes commented out; uncomment and set real paths
+to enforce them.
+
 ## Accepting a green push
 On PASS, advance the baseline (this is the acceptance act). The accept commit's subject must
 start `gadd: accept` AND its author email must be in the accepted baseline's `accept_authors`

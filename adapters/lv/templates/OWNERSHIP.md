@@ -1,7 +1,8 @@
 # OWNERSHIP — path lanes
 
 The agent (Lovable) must NOT modify governed paths. Check #2 parses the fenced block below —
-keep it as one glob per line.
+keep it as one glob per line. Commented lines inside the block are inert examples — uncomment
+and set your real path to enforce them.
 
 ```gadd-governed
 src/contracts/*
@@ -11,7 +12,8 @@ AGENTS.md
 OWNERSHIP.md
 docs/standards/*
 ai-specs/**
-{{AGENT_PROMPTS_DIR}}/*
+# Replace with your deployment's agent-prompt lane; templates ship placeholders, never real paths
+# uncomment and set your agent-prompts dir, e.g. {{AGENT_PROMPTS_DIR}}/*
 scripts/**
 .gadd/**
 gadd/BASELINE.json
