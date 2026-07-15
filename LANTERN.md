@@ -22,6 +22,20 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-15 · run #6 CLOSED — phase 1b bench-green (`078894f`):** metric-parity gate
+  shipped: engine + check 10 + schema block + 15-scenario/40-assertion corpus. Major-tier
+  full bench 5/5 — DI PASS round 3 (4 demonstrated fabrication paths fixed: spawn-fail,
+  crash-exit, typed-config silent-skip, exempt-prefix swallow), TH PASS round 2
+  (eslint_disables + .d.ts exemption pinned), SECURITY/CF/REGRESSION round 1. Standing
+  ruling #1 executed 3× this run (DI×2, TH×1; two disclosed interpretations: multi-file
+  verdict scope, and the R1 convergence pattern observed at DI 2→2 — round granted on
+  narrowing class, would PARK on a third). Fleet corpus untouched (81/81). Adoption
+  notes for deployments: parity gating goes dark if source lives outside src/ (by-spec,
+  flagged); any-pattern misses positional generics (spec-level, shared with parity
+  source). PARKED ON OPERATOR: merge run-6 branch → main; R1–R4 ratification; pushes of
+  the two governed-repo ledger commits. Deployment-side next: the first deployment adopts
+  parity.gating → its 90-extension retires.
+
 - **2026-07-15 · mission-loop run #6 (post-merge):** operator confirms merge `051c6bc` +
   post-merge gate green. **NORTH STAR FIRST MEASURED VALUE logged: escaped_rate = 0 over
   9 accepted pushes** (17 verdicts, 0 anomalies, 30 findings caught pre-acceptance) —
