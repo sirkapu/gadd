@@ -20,6 +20,18 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · mission-loop run #1 STOPPED — arbitration at cap:** bench round 2:
+  CONTRACT_FIDELITY PASS · DATA_INTEGRITY FAIL (new blocker: unreadable/empty verdict
+  file silently dropped, uncounted — `gadd-fleet.sh` verdict loop lacks the readability
+  guard the ledger loop now has) · REGRESSION FAIL (phase-2 deliverables regression-clean;
+  both blockers hit the parallel residue-sweep bundle: inert `{{AGENT_PROMPTS_DIR}}/*`
+  glob shipped as enforcement in the OWNERSHIP template; AGENTS template rule-7 guard
+  narrowed). 2-round cap consumed → surviving blockers to the human. Phase-2 work
+  committed on `mission/run-1-phase-2` (residue files left uncommitted for their owning
+  session; install.sh entangled, committed with attribution). Merge = tier-3 = human.
+  SURVIVING BLOCKERS awaiting arbitration: (1) fleet verdict-readability guard,
+  (2) inert placeholder glob, (3) rule-7 narrowing — options + recommendation in the
+  run #1 STATUS block.
 - **2026-07-14 · Blocker-notes lane renamed (Standard, ratified — residue follow-up):**
   the deployment-era blocker-notes path → `gadd/lv-blockers/`, consolidating gadd's
   entire target-repo footprint under the `gadd/` namespace it already owns (installer +

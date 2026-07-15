@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gadd escaped regression",
+  "type": "object",
+  "required": ["date", "accepted_sha", "check", "severity", "description"],
+  "properties": {
+    "date": { "type": "string" },
+    "accepted_sha": { "type": "string" },
+    "check": { "type": "string" },
+    "severity": { "enum": ["CRITICAL", "MAJOR", "MINOR"] },
+    "description": { "type": "string" },
+    "discovered_via": { "type": "string" }
+  }
+}
