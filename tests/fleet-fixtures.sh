@@ -96,8 +96,10 @@ j="$(cat "$OUT/s02.stdout")"
 chmod 644 "$r2/gadd/verdicts/locked.json"
 if [ "$(id -u)" = "0" ]; then
   fail "(2) unreadable verdict file -> anomaly unreadable=1" "skipped: running as root, permission bits ineffective"
+  fail "(2) unreadable -> anomalies.total == 1 (unreadable counted into total)" "skipped: running as root"
 else
   assert_eq "(2) unreadable verdict file -> anomaly unreadable=1" "1" "$(echo "$j" | jq '.repos[0].anomalies.by_reason.unreadable')"
+  assert_eq "(2) unreadable -> anomalies.total == 1 (unreadable counted into total)" "1" "$(echo "$j" | jq '.repos[0].anomalies.total')"
 fi
 
 # ===================================================================================
@@ -108,6 +110,7 @@ r3="$(mkrepo s03)"
 rc="$(run_fleet s03 "$r3")"
 j="$(cat "$OUT/s03.stdout")"
 assert_eq "(3) empty 0-byte verdict -> anomaly empty=1" "1" "$(echo "$j" | jq '.repos[0].anomalies.by_reason.empty')"
+assert_eq "(3) empty 0-byte verdict -> anomalies.total == 1 (empty counted into total)" "1" "$(echo "$j" | jq '.repos[0].anomalies.total')"
 
 # ===================================================================================
 # Scenario 4: non-object verdict (5)
@@ -117,6 +120,7 @@ printf '5' > "$r4/gadd/verdicts/scalar.json"
 rc="$(run_fleet s04 "$r4")"
 j="$(cat "$OUT/s04.stdout")"
 assert_eq "(4) non-object verdict '5' -> anomaly not_object=1" "1" "$(echo "$j" | jq '.repos[0].anomalies.by_reason.not_object')"
+assert_eq "(4) not_object -> anomalies.total == 1 (not_object counted into total)" "1" "$(echo "$j" | jq '.repos[0].anomalies.total')"
 
 # ===================================================================================
 # Scenario 5: lowercase verdict value "pass" -> schema_nonconformant
@@ -126,6 +130,7 @@ printf '{"sha":"a","base_sha":"b","verdict":"pass","findings":[]}' > "$r5/gadd/v
 rc="$(run_fleet s05 "$r5")"
 j="$(cat "$OUT/s05.stdout")"
 assert_eq "(5) lowercase verdict 'pass' -> schema_nonconformant=1" "1" "$(echo "$j" | jq '.repos[0].anomalies.by_reason.schema_nonconformant')"
+assert_eq "(5) schema_nonconformant -> anomalies.total == 1 (counted into total)" "1" "$(echo "$j" | jq '.repos[0].anomalies.total')"
 
 # ===================================================================================
 # Scenario 6: findings array containing a stray scalar -> that verdict nonconformant,
@@ -154,6 +159,8 @@ assert_eq "(6) escaped_by_check CONTENTS exact (round-6: never previously assert
 assert_eq "(6) pass_count == 2 (mixed-verdict repo: 2 PASS)" "2" "$(echo "$j" | jq '.repos[0].pass_count')"
 assert_eq "(6) fail_count == 1 (mixed-verdict repo: 1 FAIL)" "1" "$(echo "$j" | jq '.repos[0].fail_count')"
 assert_eq "(6) north_star.escaped_total == 3 (rollup sum over clean repos)" "3" "$(echo "$j" | jq '.north_star.escaped_total')"
+assert_eq "(6) north_star.accepted_pushes == 2 (sum of PASS verdicts, not clean-repo count)" "2" "$(echo "$j" | jq '.north_star.accepted_pushes')"
+assert_eq "(6) north_star.escaped_rate == 1.5 (measured: 3 escaped / 2 accepted, not flipped)" "1.5" "$(echo "$j" | jq -r '.north_star.escaped_rate')"
 
 # ===================================================================================
 # Scenario 7: findings as scalar "oops" -> nonconformant, disclosed
@@ -318,6 +325,7 @@ rc="$(run_fleet s19 "$r19")"
 j="$(cat "$OUT/s19.stdout")"
 assert_eq "(19) directory named x.json -> not_a_file=1" "1" "$(echo "$j" | jq '.repos[0].anomalies.by_reason.not_a_file')"
 assert_eq "(19) directory named x.json -> NOT misclassified as empty" "0" "$(echo "$j" | jq '.repos[0].anomalies.by_reason.empty')"
+assert_eq "(19) not_a_file -> anomalies.total == 1 (not_a_file counted into total)" "1" "$(echo "$j" | jq '.repos[0].anomalies.total')"
 
 # ===================================================================================
 # Scenario 20: duplicate repo path args -> deduped with WARN, counted once
@@ -431,6 +439,49 @@ rc="$(run_fleet s25 "$r25")"
 j="$(cat "$OUT/s25.stdout")"
 assert_eq "(25) window.first == earliest mtime date" "2026-01-01" "$(echo "$j" | jq -r '.repos[0].window.first')"
 assert_eq "(25) window.last == latest mtime date" "2026-07-07" "$(echo "$j" | jq -r '.repos[0].window.last')"
+
+# ===================================================================================
+# Scenario 26: mixed fleet in ONE invocation — repoX clean (one valid PASS verdict),
+# repoY chmod-000 (anomalous). north_star must count ONLY the clean repo: a mutation
+# reporting ALL repos as clean would inflate clean_repos to 2 here. Perms restored
+# immediately after the run (scenario 23 style).
+# ===================================================================================
+r26x="$(mkrepo s26x)"
+r26y="$(mkrepo s26y)"
+echo -n "$(valid_verdict PASS)" > "$r26x/gadd/verdicts/v1.json"
+echo -n "$(valid_verdict PASS)" > "$r26y/gadd/verdicts/v1.json"
+chmod 000 "$r26y"
+rc="$(run_fleet s26 "$r26x" "$r26y")"
+j="$(cat "$OUT/s26.stdout")"
+chmod 755 "$r26y"
+assert_eq "(26) mixed fleet -> repos array length 2" "2" "$(echo "$j" | jq '.repos | length')"
+if [ "$(id -u)" = "0" ]; then
+  fail "(26) mixed fleet -> north_star.clean_repos == 1" "skipped: running as root, permission bits ineffective"
+  fail "(26) mixed fleet -> north_star.anomalous_repos length == 1" "skipped: running as root"
+  fail "(26) mixed fleet -> north_star.accepted_pushes == 1" "skipped: running as root"
+  fail "(26) anomalous_repos entries are path strings, not objects" "skipped: running as root"
+else
+  assert_eq "(26) mixed fleet -> north_star.clean_repos == 1" "1" "$(echo "$j" | jq '.north_star.clean_repos')"
+  assert_eq "(26) mixed fleet -> north_star.anomalous_repos length == 1" "1" "$(echo "$j" | jq '.north_star.anomalous_repos | length')"
+  assert_eq "(26) mixed fleet -> north_star.accepted_pushes == 1" "1" "$(echo "$j" | jq '.north_star.accepted_pushes')"
+  assert_eq "(26) anomalous_repos entries are path strings, not objects" "string" "$(echo "$j" | jq -r '.north_star.anomalous_repos[0] | type')"
+fi
+
+# ===================================================================================
+# Scenario 27: ONE repo carrying TWO different anomaly classes (one empty 0-byte
+# verdict + one malformed-JSON verdict) -> anomalies.total must be 2. Kills
+# hardcoded-total mutants (total=1) and single-class-total mutants
+# (total=by_reason.empty or total=by_reason.malformed_json alone) that every
+# single-anomaly fixture survives. Does NOT cover class-drop variants that omit a
+# class absent here (e.g. dropping not_a_file from the sum) — those are pinned by
+# the per-scenario anomalies.total assertions in scenarios 2/3/4/5/19.
+# ===================================================================================
+r27="$(mkrepo s27)"
+: > "$r27/gadd/verdicts/empty.json"
+printf '{not valid json' > "$r27/gadd/verdicts/bad.json"
+rc="$(run_fleet s27 "$r27")"
+j="$(cat "$OUT/s27.stdout")"
+assert_eq "(27) empty + malformed in one repo -> anomalies.total == 2 (cross-class sum)" "2" "$(echo "$j" | jq '.repos[0].anomalies.total')"
 
 # ===================================================================================
 echo ""
