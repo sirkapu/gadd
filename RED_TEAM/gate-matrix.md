@@ -40,6 +40,11 @@ concrete models are an adapter/deployment concern (spec §3):
 | structural | `haiku` | `claude-haiku-4-5-20251001` |
 | judgment | `opus` | `claude-opus-4-8` |
 
+**Tier floor, not ceiling (ratified 2026-07-15):** the mapped tier is a MINIMUM. A
+verification or final-judgment pass of any adversary MAY run above its mapped tier, never
+below — consistent with the fallback-chain rule (workers may fall back down, graders never
+do). Every above-tier run is logged in the lantern.
+
 ## Protocol
 
 1. Launch each triggered adversary in parallel, read-only, with exactly: its

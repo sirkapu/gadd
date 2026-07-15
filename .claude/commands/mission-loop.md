@@ -46,6 +46,11 @@ On ANY of these: write the handoff (lantern + one-paragraph state), emit the STA
 
 The loop may be relaunched on a schedule (launchd/cron): `claude -p "$(cat .claude/commands/mission-loop.md)"`. Each run resumes from the lantern; runs are bounded by the existing global stops (task budget, context threshold, no-progress). The chain reads this loop from the checked-out working tree: if a scheduled run finds itself on the default branch while the lantern names an active mission branch pre-merge, it checks out that branch FIRST, then proceeds. Tier-3 hard stops never widen — merge/push/deploy/graders/baselines/secrets stay human, day or night. A scheduled run that finds only parked work reports QUEUE EMPTY and exits — that is the system working, not failing.
 
+**Retro cadence (ratified 2026-07-15):** every scheduled-chain night ends with a night
+retro — local-private, in `audits/` — reviewing all standing-ruling executions, Director
+judgment calls, and session anomalies; its proposals surface for ratification in the next
+morning brief.
+
 ## STATUS block (mandatory, last output of every run)
 
 ```

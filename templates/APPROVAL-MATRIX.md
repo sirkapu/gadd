@@ -26,10 +26,14 @@ reported in the run's STATUS — audit after, not gate before. Rulings are revoc
 can never be converted by a standing ruling. A ruling's FIRST autonomous execution is
 highlighted in the morning brief and reviewed at the next retro.
 
-1. **(2026-07-14; wording ratified 2026-07-15)** ONE root-cause Fixer round per
+1. **(2026-07-14; wording ratified 2026-07-15; scope + convergence guard folded in at
+   the night-1 retro ratification, 2026-07-15)** ONE root-cause Fixer round per
    ADVERSARY-VERDICT per plan item is pre-approved — naturally capped by bench size —
-   when: scope ≤ the failing file, tier ≤ Standard, and the failed adversary re-runs
-   after. Beyond that = park.
+   when ALL of: **scope** ≤ the files that verdict's blockers demonstrate failures in
+   (nothing the verdict did not name); **tier** ≤ Standard; the failed adversary
+   **re-runs** after. **Convergence guard:** if the same adversary's blocker count fails
+   to decrease across two consecutive pre-approved rounds on one item, the next red
+   verdict PARKS regardless of this ruling. Anything beyond = park.
 
 ## Tier-3 / Major — {{HUMAN}} approves, every time
 
