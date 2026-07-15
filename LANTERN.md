@@ -10,8 +10,8 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| Active mission branch | `mission/run-6-phase-1b` (phase 2 MERGED to main `051c6bc`, pushed, post-merge gate green) |
-| North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). CAVEAT (instrument-reported): both deployment ledgers were missing at measurement — the zero means "nothing recorded" until `gadd/ESCAPED.jsonl` exists in both repos (run #6 Trivial item) |
+| Active mission branch | none — run-6 MERGED to main `84f77ba` (--no-ff), pushed, post-merge gate green. Pre-push scrub rebuilt the branch history (phase-1b commit `078894f` → `cee8f3a`) |
+| North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
 | Adapters | lv (boundary) shipped · cc (in-loop) in progress — installer + blocking CI/hooks are v0.3 |
@@ -22,7 +22,24 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
-- **2026-07-15 · run #6 CLOSED — phase 1b bench-green (`078894f`):** metric-parity gate
+- **2026-07-15 · run #6 approvals EXECUTED (operator-delegated):** R1–R4 RATIFIED and
+  written in: standing ruling #1 rewritten at invariant grade (scope = the files the
+  verdict's blockers demonstrate failures in; convergence guard folded in); tier-floor
+  line added to gate-matrix (grader edit under explicit ratification); retro cadence in
+  mission-loop; R3 dispatch watchdog queued phase-4. PRE-PUSH LEAK CAUGHT: two deployment
+  names in run-6 lantern entries — and the residue guard's word-boundary pattern was
+  silently DEAD (`git grep -E` lacks `\b` support here; only `-P` matches — a
+  fabricated-clean in the guard itself). Local-only branch history rebuilt with the lines
+  scrubbed at their introduction (phase-1b commit `078894f` → `cee8f3a`; final-tree diff
+  vs original = the 2 anonymized lines only); every pushed commit PCRE-verified clean.
+  Merged `84f77ba` (--no-ff), post-merge gate green (parity 40/40 · fleet 81/81 · residue
+  clean), pushed. Ledger pushes: first deployment `6f33ea4` pushed; second's `0fb485a`
+  was already on its origin. North Star ledger caveat CLOSED — both ledgers live.
+  PARKED (guard change = tier-3): switch `bin/residue-check.sh` to `git grep -P` and
+  fail loud when PCRE is unavailable — a guard that cannot run never passes silently.
+
+- **2026-07-15 · run #6 CLOSED — phase 1b bench-green (`078894f`, now `cee8f3a` after the
+  pre-push scrub):** metric-parity gate
   shipped: engine + check 10 + schema block + 15-scenario/40-assertion corpus. Major-tier
   full bench 5/5 — DI PASS round 3 (4 demonstrated fabrication paths fixed: spawn-fail,
   crash-exit, typed-config silent-skip, exempt-prefix swallow), TH PASS round 2
