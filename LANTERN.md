@@ -20,6 +20,26 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · mission-loop run #4 STOPPED — DI round 5 red; substrate diagnosis:**
+  schema-admission redesign applied + verified (round-4 killer fixed: nonconformant
+  records become classified per-repo anomalies, anomalous repos carry NULL counts,
+  north_star sums clean repos only; docs kept truthful, 2 lines). DI round 5 (after 2
+  invocation failures — G3 data points — resolved by direct resume) demonstrated: (1)
+  whitelist BYPASS via concatenated multi-document JSON — `jq -e` reflects only the last
+  doc, `jq -s` later splits the stream into multiple admitted records, zero anomalies;
+  (2) unreadable verdicts dir fabricates clean zeros; (3) unreadable-but-existing ledger
+  emits clean escaped_total=0 into north_star (null ≠ 0 violated). Notes: bash `$(cat)`
+  strips NUL bytes (silent mutation before validation); dir named `*.json` misclassified;
+  duplicate repo args double-count. **Architect diagnosis: the residual class is the
+  bash+jq SUBSTRATE — stream semantics, NUL stripping, exit-status quirks. Options for
+  arbitration: (a) mechanical round on the 3 blockers (closes these, arms race
+  continues); (b) RECOMMENDED — reimplement gadd-fleet as zero-dep Node (ratchet.mjs
+  precedent: whole-file JSON.parse succeeds or throws, no multi-doc ambiguity, no NUL
+  stripping), acceptance = ALL 16 accumulated DI fixtures rounds 1–5 pass before DI
+  re-runs; (c) accept-with-waiver — rejected by recommendation, truth-only forbids a
+  known-corruptible North Star instrument.** Cap held, merge HOLD, phase 1b untouched
+  (fresh context). The fixture corpus is now the instrument's de-facto spec.
+
 - **2026-07-14 · mission-loop run #3 STOPPED — DI round 4 red, structural diagnosis:**
   root-cause fix applied + verified (verdict type guard, check-key coercion, repo-always-
   emitted fallback; all 9 prior fixtures green, fallback adversarially probed). DI then

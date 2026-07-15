@@ -5,6 +5,15 @@
 # human table. The JSON names private repo paths: it is LOCAL-ONLY, never commit it,
 # never paste it into a shared doc/PR. See docs/measurement.md.
 #
+# SCHEMA ADMISSION (ratified 2026-07-14): every verdict file is validated against
+# spec/schemas/verdict.schema.json and every ledger line against
+# spec/schemas/escaped.schema.json BEFORE aggregation. Only conformant records are
+# admitted; every non-conformant record is disclosed per repo under "anomalies"
+# (total + by_reason) and WARNed to stderr. A repo whose aggregation of admitted
+# records succeeds is status "clean" (counts reflect admitted records only). The
+# north_star rolls up escaped_total / accepted_pushes / escaped_rate over CLEAN
+# repos only, and lists clean_repos + anomalous_repos.
+#
 # Usage: bin/gadd-fleet.sh <governed-repo-path> [<path>...]
 #   e.g. bin/gadd-fleet.sh ~/code/acme-app ~/code/acme-admin
 set -uo pipefail
@@ -16,6 +25,70 @@ usage() {
 }
 
 [ "$#" -eq 0 ] && { usage; exit 1; }
+
+# --- WHITELIST: the instrument never runs without its schemas -----------------
+# Schemas resolve relative to this script. If either is missing, exit 1 loudly:
+# admission is the whole point — we do not aggregate un-validated records.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCHEMAS_DIR="$SCRIPT_DIR/../spec/schemas"
+V_SCHEMA="$SCHEMAS_DIR/verdict.schema.json"
+E_SCHEMA="$SCHEMAS_DIR/escaped.schema.json"
+if [ ! -f "$V_SCHEMA" ]; then
+  echo "FATAL: gadd-fleet: verdict schema missing at $V_SCHEMA — refusing to run without its whitelist" >&2
+  exit 1
+fi
+if [ ! -f "$E_SCHEMA" ]; then
+  echo "FATAL: gadd-fleet: escaped schema missing at $E_SCHEMA — refusing to run without its whitelist" >&2
+  exit 1
+fi
+
+# Shared, schema-driven validation preamble. Reads required[], property types, and
+# enums straight from the schema (the run-all.sh validator pattern), extended so
+# that array-of-object properties (findings) are checked element by element.
+JQ_DEFS='
+  def type_ok($v; $t):
+    ($t == null)
+    or ($t == "string"  and ($v|type) == "string")
+    or ($t == "object"  and ($v|type) == "object")
+    or ($t == "array"   and ($v|type) == "array")
+    or ($t == "number"  and ($v|type) == "number")
+    or ($t == "integer" and ($v|type) == "number")
+    or ($t == "boolean" and ($v|type) == "boolean");
+  def check_obj($doc; $schema):
+    ((($schema.required // []) - ($doc | keys)) == [])
+    and ([ ($schema.properties // {}) | to_entries[]
+           | .key as $k | .value as $ps
+           | if ($doc | has($k))
+             then type_ok($doc[$k]; $ps.type)
+                  and (if ($ps.enum) then ($ps.enum | index($doc[$k]) != null) else true end)
+             else true end
+         ] | all);
+'
+
+# validate_verdict: reads $content (an already-parsed JSON *object*), returns 0 iff
+# it conforms to verdict.schema.json — including: findings is an array, and every
+# finding is an object meeting findings.items required/enums/types.
+validate_verdict() {
+  printf '%s' "$1" | jq -e --slurpfile s "$V_SCHEMA" "$JQ_DEFS"'
+    $s[0] as $schema
+    | (type == "object")
+      and check_obj(.; $schema)
+      and ((.findings | type) == "array")
+      and ([ .findings[]?
+             | (type == "object")
+               and check_obj(.; $schema.properties.findings.items)
+           ] | all)
+  ' >/dev/null 2>&1
+}
+
+# validate_escaped: reads a single JSON *object* line, returns 0 iff it conforms to
+# escaped.schema.json (required[], property types incl. string check, severity enum).
+validate_escaped() {
+  printf '%s' "$1" | jq -e --slurpfile s "$E_SCHEMA" "$JQ_DEFS"'
+    $s[0] as $schema
+    | (type == "object") and check_obj(.; $schema)
+  ' >/dev/null 2>&1
+}
 
 # mtime -> YYYY-MM-DD. Probe BSD stat (macOS) first, fall back to GNU stat (Linux).
 mtime_date() {
@@ -39,7 +112,13 @@ for repo in "$@"; do
     continue
   fi
 
-  parse_errors=0
+  # anomaly tallies, per reason class (ratified: disclosure must be actionable)
+  anom_unreadable=0
+  anom_empty=0
+  anom_malformed_json=0
+  anom_not_object=0
+  anom_schema_nonconformant=0
+  anom_aggregation_failed=0
 
   # --- verdicts ---
   verdicts_dir="$repo/gadd/verdicts"
@@ -50,37 +129,45 @@ for repo in "$@"; do
       verdict_files=("$verdicts_dir"/*.json)
       shopt -u nullglob
     else
-      echo "WARN: gadd-fleet: $verdicts_dir not readable — fail-open, treating as 0 verdicts" >&2
+      echo "WARN: gadd-fleet: $verdicts_dir not readable — treating as 0 verdicts" >&2
     fi
   else
-    echo "WARN: gadd-fleet: $verdicts_dir missing — fail-open, treating as 0 verdicts" >&2
+    echo "WARN: gadd-fleet: $verdicts_dir missing — treating as 0 verdicts" >&2
   fi
 
   valid_verdicts=()
   dates=()
-  for f in "${verdict_files[@]}"; do
+  for f in ${verdict_files[@]+"${verdict_files[@]}"}; do
     if [ ! -r "$f" ]; then
-      parse_errors=$((parse_errors + 1))
-      echo "WARN: gadd-fleet: $f verdict file unreadable — counted as anomaly" >&2
+      anom_unreadable=$((anom_unreadable + 1))
+      echo "WARN: gadd-fleet: $f verdict file unreadable — anomaly (unreadable)" >&2
       continue
     fi
-    d="$(mtime_date "$f")"
-    [ -n "$d" ] && dates+=("$d")
     content="$(cat "$f" 2>/dev/null)"
     if [ -z "$content" ]; then
-      parse_errors=$((parse_errors + 1))
-      echo "WARN: gadd-fleet: $f verdict file empty — counted as anomaly" >&2
+      anom_empty=$((anom_empty + 1))
+      echo "WARN: gadd-fleet: $f verdict file empty — anomaly (empty)" >&2
       continue
     fi
     if ! printf '%s' "$content" | jq empty >/dev/null 2>&1; then
-      parse_errors=$((parse_errors + 1))
-      echo "WARN: gadd-fleet: $f is malformed JSON — fail-open, counted in parse_errors" >&2
-    elif printf '%s' "$content" | jq -e 'type=="object"' >/dev/null 2>&1; then
-      valid_verdicts+=("$content")
-    else
-      parse_errors=$((parse_errors + 1))
-      echo "WARN: gadd-fleet: $f verdict file not a JSON object — counted as anomaly" >&2
+      anom_malformed_json=$((anom_malformed_json + 1))
+      echo "WARN: gadd-fleet: $f is malformed JSON — anomaly (malformed_json)" >&2
+      continue
     fi
+    if ! printf '%s' "$content" | jq -e 'type=="object"' >/dev/null 2>&1; then
+      anom_not_object=$((anom_not_object + 1))
+      echo "WARN: gadd-fleet: $f verdict is not a JSON object — anomaly (not_object)" >&2
+      continue
+    fi
+    if ! validate_verdict "$content"; then
+      anom_schema_nonconformant=$((anom_schema_nonconformant + 1))
+      echo "WARN: gadd-fleet: $f verdict fails verdict.schema.json — anomaly (schema_nonconformant)" >&2
+      continue
+    fi
+    # ADMITTED
+    valid_verdicts+=("$content")
+    d="$(mtime_date "$f")"
+    [ -n "$d" ] && dates+=("$d")
   done
 
   verdicts_json='[]'
@@ -98,21 +185,27 @@ for repo in "$@"; do
   ledger="$repo/gadd/ESCAPED.jsonl"
   valid_escaped=()
   if [ -f "$ledger" ] && [ ! -r "$ledger" ]; then
-    echo "WARN: gadd-fleet: $ledger unreadable — escaped counts unavailable" >&2
-    parse_errors=$((parse_errors + 1))
+    anom_unreadable=$((anom_unreadable + 1))
+    echo "WARN: gadd-fleet: $ledger unreadable — anomaly (unreadable), escaped counts unavailable from it" >&2
   elif [ -f "$ledger" ]; then
     if [ -s "$ledger" ]; then
       while IFS= read -r line || [ -n "$line" ]; do
         [ -z "$line" ] && continue
-        if printf '%s' "$line" | jq -e 'type=="object"' >/dev/null 2>&1; then
-          valid_escaped+=("$line")
+        if ! printf '%s' "$line" | jq empty >/dev/null 2>&1; then
+          anom_malformed_json=$((anom_malformed_json + 1))
+          echo "WARN: gadd-fleet: $ledger has a malformed JSONL line — anomaly (malformed_json)" >&2
+        elif ! printf '%s' "$line" | jq -e 'type=="object"' >/dev/null 2>&1; then
+          anom_not_object=$((anom_not_object + 1))
+          echo "WARN: gadd-fleet: $ledger has a non-object JSONL line — anomaly (not_object)" >&2
+        elif ! validate_escaped "$line"; then
+          anom_schema_nonconformant=$((anom_schema_nonconformant + 1))
+          echo "WARN: gadd-fleet: $ledger has a line failing escaped.schema.json — anomaly (schema_nonconformant)" >&2
         else
-          parse_errors=$((parse_errors + 1))
-          echo "WARN: gadd-fleet: $ledger has a malformed JSONL line — fail-open, counted in parse_errors" >&2
+          valid_escaped+=("$line")
         fi
       done < "$ledger"
     fi
-    # empty file = healthy zero, no warning
+    # empty file = healthy zero, no anomaly
   else
     echo "WARN: gadd-fleet: $ledger missing — escaped counted as 0" >&2
   fi
@@ -122,15 +215,22 @@ for repo in "$@"; do
     escaped_json="$(printf '%s\n' "${valid_escaped[@]}" | jq -s '.')"
   fi
 
+  # --- aggregate ADMITTED records only ---
   repo_obj="$(jq -n \
     --arg path "$repo" \
     --argjson verdicts "$verdicts_json" \
     --argjson escaped "$escaped_json" \
     --arg first "$first" \
     --arg last "$last" \
-    --argjson parse_errors "$parse_errors" '
+    --argjson unreadable "$anom_unreadable" \
+    --argjson empty "$anom_empty" \
+    --argjson malformed_json "$anom_malformed_json" \
+    --argjson not_object "$anom_not_object" \
+    --argjson schema_nonconformant "$anom_schema_nonconformant" \
+    --argjson aggregation_failed "$anom_aggregation_failed" '
     {
       path: $path,
+      status: "clean",
       verdicts_total: ($verdicts | length),
       pass_count: ([$verdicts[] | select(.verdict=="PASS")] | length),
       fail_count: ([$verdicts[] | select(.verdict=="FAIL")] | length),
@@ -147,28 +247,55 @@ for repo in "$@"; do
         first: (if $first == "" then null else $first end),
         last:  (if $last  == "" then null else $last  end)
       },
-      parse_errors: $parse_errors
+      anomalies: {
+        total: ($unreadable + $empty + $malformed_json + $not_object + $schema_nonconformant + $aggregation_failed),
+        by_reason: {
+          unreadable: $unreadable,
+          empty: $empty,
+          malformed_json: $malformed_json,
+          not_object: $not_object,
+          schema_nonconformant: $schema_nonconformant,
+          aggregation_failed: $aggregation_failed
+        }
+      }
     }')"
   jq_rc=$?
 
-  # CLASS-CLOSER: a repo with a gadd/ dir must NEVER vanish from the rollup.
-  # If the aggregation jq failed or produced no output, emit a fallback anomaly
-  # object so the repo is still counted (with counts unavailable, parse_errors>=1).
+  # NEVER ZEROS: if aggregation of admitted records itself failed, the repo is
+  # still emitted — as "anomalous", every numeric count field null (not 0), with
+  # anomalies populated (aggregation_failed +1) and a WARN. It must never vanish.
   if [ "$jq_rc" -ne 0 ] || [ -z "$repo_obj" ]; then
-    echo "WARN: gadd-fleet: aggregation failed for $repo — emitted as anomaly, counts unavailable" >&2
+    echo "WARN: gadd-fleet: aggregation failed for $repo — emitted as anomalous, counts null (aggregation_failed)" >&2
+    anom_aggregation_failed=$((anom_aggregation_failed + 1))
     repo_obj="$(jq -n \
       --arg path "$repo" \
-      --argjson parse_errors "$((parse_errors + 1))" '
+      --argjson unreadable "$anom_unreadable" \
+      --argjson empty "$anom_empty" \
+      --argjson malformed_json "$anom_malformed_json" \
+      --argjson not_object "$anom_not_object" \
+      --argjson schema_nonconformant "$anom_schema_nonconformant" \
+      --argjson aggregation_failed "$anom_aggregation_failed" '
       {
         path: $path,
-        verdicts_total: 0,
-        pass_count: 0,
-        fail_count: 0,
-        findings: { CRITICAL: 0, MAJOR: 0, MINOR: 0 },
-        escaped_total: 0,
+        status: "anomalous",
+        verdicts_total: null,
+        pass_count: null,
+        fail_count: null,
+        findings: { CRITICAL: null, MAJOR: null, MINOR: null },
+        escaped_total: null,
         escaped_by_check: {},
         window: { first: null, last: null },
-        parse_errors: $parse_errors
+        anomalies: {
+          total: ($unreadable + $empty + $malformed_json + $not_object + $schema_nonconformant + $aggregation_failed),
+          by_reason: {
+            unreadable: $unreadable,
+            empty: $empty,
+            malformed_json: $malformed_json,
+            not_object: $not_object,
+            schema_nonconformant: $schema_nonconformant,
+            aggregation_failed: $aggregation_failed
+          }
+        }
       }')"
   fi
 
@@ -180,8 +307,12 @@ if [ "${#repo_objs[@]}" -gt 0 ]; then
   repos_json="$(printf '%s\n' "${repo_objs[@]}" | jq -s '.')"
 fi
 
-escaped_total_sum="$(echo "$repos_json" | jq '[.[].escaped_total] | add // 0')"
-accepted_pushes="$(echo "$repos_json" | jq '[.[].pass_count] | add // 0')"
+# NORTH STAR over CLEAN repos only.
+escaped_total_sum="$(echo "$repos_json" | jq '[.[] | select(.status=="clean") | .escaped_total] | add // 0')"
+accepted_pushes="$(echo "$repos_json" | jq '[.[] | select(.status=="clean") | .pass_count] | add // 0')"
+clean_repos="$(echo "$repos_json" | jq '[.[] | select(.status=="clean")] | length')"
+anomalous_repos_json="$(echo "$repos_json" | jq '[.[] | select(.status=="anomalous") | .path]')"
+anomalous_repos_count="$(echo "$anomalous_repos_json" | jq 'length')"
 if [ "$accepted_pushes" -eq 0 ]; then
   escaped_rate="unmeasured"
 else
@@ -192,11 +323,15 @@ output_json="$(jq -n \
   --argjson repos "$repos_json" \
   --argjson escaped_total "$escaped_total_sum" \
   --argjson accepted_pushes "$accepted_pushes" \
+  --argjson clean_repos "$clean_repos" \
+  --argjson anomalous_repos "$anomalous_repos_json" \
   --arg escaped_rate "$escaped_rate" '
   {
     generated_note: "local-only, do not commit",
     repos: $repos,
     north_star: {
+      clean_repos: $clean_repos,
+      anomalous_repos: $anomalous_repos,
       escaped_total: $escaped_total,
       accepted_pushes: $accepted_pushes,
       escaped_rate: $escaped_rate
@@ -208,14 +343,14 @@ printf '%s\n' "$output_json"
 {
   echo ""
   echo "gadd-fleet — LOCAL-ONLY, do not commit"
-  printf '%-46s %8s %6s %6s %9s %6s %6s %6s %7s\n' \
-    "repo" "verdicts" "pass" "fail" "escaped" "CRIT" "MAJ" "MIN" "errors"
-  echo "$repos_json" | jq -r '.[] | [.path, .verdicts_total, .pass_count, .fail_count, .escaped_total, .findings.CRITICAL, .findings.MAJOR, .findings.MINOR, .parse_errors] | @tsv' |
-    while IFS=$'\t' read -r p vt pc fc et cr mj mn pe; do
-      printf '%-46s %8s %6s %6s %9s %6s %6s %6s %7s\n' "$p" "$vt" "$pc" "$fc" "$et" "$cr" "$mj" "$mn" "$pe"
+  printf '%-46s %8s %6s %6s %9s %6s %6s %6s %10s %10s\n' \
+    "repo" "verdicts" "pass" "fail" "escaped" "CRIT" "MAJ" "MIN" "status" "anomalies"
+  echo "$repos_json" | jq -r '.[] | [.path, .verdicts_total, .pass_count, .fail_count, .escaped_total, .findings.CRITICAL, .findings.MAJOR, .findings.MINOR, .status, .anomalies.total] | @tsv' |
+    while IFS=$'\t' read -r p vt pc fc et cr mj mn st an; do
+      printf '%-46s %8s %6s %6s %9s %6s %6s %6s %10s %10s\n' "$p" "$vt" "$pc" "$fc" "$et" "$cr" "$mj" "$mn" "$st" "$an"
     done
   echo ""
-  echo "north star — escaped_total=$escaped_total_sum accepted_pushes=$accepted_pushes escaped_rate=$escaped_rate"
+  echo "north star — clean_repos=$clean_repos anomalous_repos=$anomalous_repos_count escaped_total=$escaped_total_sum accepted_pushes=$accepted_pushes escaped_rate=$escaped_rate"
 } >&2
 
 exit 0
