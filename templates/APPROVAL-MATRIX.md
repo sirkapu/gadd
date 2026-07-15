@@ -26,8 +26,10 @@ reported in the run's STATUS — audit after, not gate before. Rulings are revoc
 can never be converted by a standing ruling. A ruling's FIRST autonomous execution is
 highlighted in the morning brief and reviewed at the next retro.
 
-1. **(2026-07-14)** ONE root-cause Fixer round per item is pre-approved when: scope ≤ the
-   failing file, tier ≤ Standard, and the failed adversaries re-run after.
+1. **(2026-07-14; wording ratified 2026-07-15)** ONE root-cause Fixer round per
+   ADVERSARY-VERDICT per plan item is pre-approved — naturally capped by bench size —
+   when: scope ≤ the failing file, tier ≤ Standard, and the failed adversary re-runs
+   after. Beyond that = park.
 
 ## Tier-3 / Major — {{HUMAN}} approves, every time
 
