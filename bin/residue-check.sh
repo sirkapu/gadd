@@ -64,6 +64,14 @@ while IFS= read -r p; do
         status=1
       fi
     done
+    # R5 (ratified 2026-07-15): commit METADATA scan — blob scans structurally miss
+    # authors/committers (a personal email survived every content scan until the
+    # metadata pass). Taggers: check pushed tags with `git cat-file -p <tag>`.
+    if meta_hits="$(git log "$RANGE" --format='%h author:%an <%ae> committer:%cn <%ce>' | grep -i -E -- "$p")"; then
+      echo "RESIDUE (metadata): pattern '$p' matches commit author/committer fields:"
+      printf '%s\n' "$meta_hits"
+      status=1
+    fi
   else
     if hits="$(git grep -n -i -E -- "$p" 2>/dev/null)"; then
       echo "RESIDUE: pattern '$p' matches tracked files:"
