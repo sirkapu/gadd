@@ -20,6 +20,19 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · NIGHT MODE ratified (Standard, applied on mission branch):**
+  mission-loop amended — tier-3/ratification are now ITEM-LEVEL PARKS (decision packet
+  prepared, loop continues with next unblocked item); global stops reduced to QUEUE
+  EMPTY / no-progress / context / budget / DoD. STANDING RULINGS section added to the
+  approval-matrix template (pre-approved-batches tier; logged + reported, audit-after,
+  revocable at retro; can never convert tier-3 hard stops), seeded with: "one root-cause
+  Fixer round per item pre-approved when scope ≤ failing file, tier ≤ Standard, failed
+  adversaries re-run after." Scheduled chain + morning brief documented in the loop.
+  Tier-3 hard stops unchanged, day or night. PARKED ITEM under the new semantics: the
+  North Star instrument awaits the substrate ruling (a: mechanical round / b RECOMMENDED:
+  zero-dep Node reimplementation gated on all 16 fixtures / c: waiver — argued against)
+  — decision packet = run #4 STATUS. Next unblocked ratified item: phase 1b.
+
 - **2026-07-14 · mission-loop run #4 STOPPED — DI round 5 red; substrate diagnosis:**
   schema-admission redesign applied + verified (round-4 killer fixed: nonconformant
   records become classified per-repo anomalies, anomalous repos carry NULL counts,

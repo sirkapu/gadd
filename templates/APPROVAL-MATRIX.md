@@ -17,6 +17,17 @@ autonomous ≈ Trivial/Standard in-lane work; tier-3 = Major — human, every ti
 - Dispatching work inside a {{HUMAN}}-approved milestone (log scope/cost in the loop ledger).
 - Routine dependency PATCH updates that pass the full deterministic gate (log them).
 
+### Standing rulings
+
+Operator-ratified rulings that convert a would-be park (tier-3 / ratification-needed) into
+autonomous execution of a SPECIFIC pattern. Every execution is logged in the lantern and
+reported in the run's STATUS — audit after, not gate before. Rulings are revocable by
+{{HUMAN}} at any retro. Tier-3 hard stops (merge/push/deploy/graders/baselines/secrets)
+can never be converted by a standing ruling.
+
+1. **(2026-07-14)** ONE root-cause Fixer round per item is pre-approved when: scope ≤ the
+   failing file, tier ≤ Standard, and the failed adversaries re-run after.
+
 ## Tier-3 / Major — {{HUMAN}} approves, every time
 
 - Merging or pushing to the default branch; deploys and publishes.
