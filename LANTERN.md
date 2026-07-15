@@ -20,6 +20,21 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-14 · mission-loop run #2 — arbitrated fixes applied, DI still red:** Fixer
+  (separate instance) applied rulings 1–3, all mechanically verified: fleet verdict
+  unreadable/empty anomaly guards (parse_errors + WARN, never vanished); OWNERSHIP
+  template prompts-lane now a COMMENTED example (proven inert to check 02's parser;
+  template prose + lv README note it); AGENTS rule 7 restored with generic examples
+  ("e.g., geolocation, user images — define your product's list"). Bench re-run:
+  REGRESSION PASS (all 3 branch workstreams verified; 2 notes: orphaned pre-rename files
+  on re-install, schema fields unconstrained) · DATA_INTEGRITY FAIL round 3 with a NEW
+  3-blocker set naming the ROOT CAUSE — the per-repo aggregation jq fails opaque on any
+  structurally-unexpected input (non-object verdict files, non-string `check` values)
+  and the empty `repo_obj` is never checked, silently erasing a repo from the rollup.
+  Diagnosis: rounds 1–2 patched instances of one class; the class-closer is the
+  `repo_obj` emptiness fallback + 2 type guards, one mechanical round. NOT self-granted —
+  awaiting ratification. Merge still HOLD. Phase 1b deferred to run #3 (context budget).
+
 - **2026-07-14 · mission-loop run #1 STOPPED — arbitration at cap:** bench round 2:
   CONTRACT_FIDELITY PASS · DATA_INTEGRITY FAIL (new blocker: unreadable/empty verdict
   file silently dropped, uncounted — `gadd-fleet.sh` verdict loop lacks the readability

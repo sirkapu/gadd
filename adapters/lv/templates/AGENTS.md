@@ -6,5 +6,5 @@
 4. Never delete, skip, or weaken tests to make a build pass. A failing test is a blocker report.
 5. Use `_shared/` utilities (CORS, JSON recovery, cost tracking); do not reimplement them.
 6. Migrations: `YYYYMMDDHHMMSS_snake_case.sql`, UTC, one concern per file, never edit applied ones.
-7. Never log secrets, tokens, user PII, or domain-sensitive data (define your product's here).
+7. Never log secrets, tokens, user PII, or domain-sensitive data (e.g., geolocation, user images — define your product's list).
 8. End every task with a Response Report: files touched, migrations, decisions, known issues.

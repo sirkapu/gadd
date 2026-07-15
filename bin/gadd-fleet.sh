@@ -59,9 +59,19 @@ for repo in "$@"; do
   valid_verdicts=()
   dates=()
   for f in "${verdict_files[@]}"; do
+    if [ ! -r "$f" ]; then
+      parse_errors=$((parse_errors + 1))
+      echo "WARN: gadd-fleet: $f verdict file unreadable — counted as anomaly" >&2
+      continue
+    fi
     d="$(mtime_date "$f")"
     [ -n "$d" ] && dates+=("$d")
     content="$(cat "$f" 2>/dev/null)"
+    if [ -z "$content" ]; then
+      parse_errors=$((parse_errors + 1))
+      echo "WARN: gadd-fleet: $f verdict file empty — counted as anomaly" >&2
+      continue
+    fi
     if printf '%s' "$content" | jq empty >/dev/null 2>&1; then
       valid_verdicts+=("$content")
     else
