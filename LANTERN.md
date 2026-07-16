@@ -19,9 +19,42 @@ below (append-only) and in git.
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | Dogfood gadd-on-gadd COMPLETE on branch (run #11, bench 5/5) — merge+push = operator's button. NEXT-RUN PRIORITY (Ratifier-flagged): GADD_BASE silent-pass hardening (MAJOR red) + APEX-audit triage (operator-supplied external audit of the stale run-6 branch: fail-open gate modes + same-push defeat vectors; two vectors already narrowed by the dogfood branch — RED_TEAM/** governed, accept_authors live). QUEUED: sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · run-10 deferrals (all OPEN reds, Ratifier receipt 5): hook HEAD-vs-pushed-ref coupling (MINOR), redteam `.txt` verdicts uncovered by `*.json` ignore (MINOR), GADD_BASE silent-pass in shipped checks (MAJOR — a garbage base ref makes every check swallow git errors and PASS vacuously; executor-demonstrated), OWNERSHIP.md not self-governed (MINOR), stale OWNERSHIP prose line re lane list (Trivial doc fix) · retro items: approval-matrix↔charter tier-3 seam · SR-8 flag: "disclosure-addition vs monotonic-tightening" boundary needs invariant wording · later: `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | Dogfood gadd-on-gadd COMPLETE on branch (run #11, bench 5/5) — merge+push = operator's button. NEXT-RUN PRIORITY (Ratifier-flagged): GADD_BASE silent-pass hardening (MAJOR red) + APEX-audit triage (operator-supplied external audit of the stale run-6 branch: fail-open gate modes + same-push defeat vectors; two vectors already narrowed by the dogfood branch — RED_TEAM/** governed, accept_authors live). QUEUED: sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · SPEED RULINGS RATIFIED 2026-07-16 (log entry below; audit local-private): P1 context-ceiling enforcement (Standard, monotonic) + P3 composite receipts script (Standard, monotonic) + P4 LANTERN rotation (Trivial/Standard, archive-never-delete) APPROVED and queued; P2 `gadd-bench` runner TIER-3 CONDITIONAL — only after the dogfood merge, 3 receipts (equivalence both-ways · known-bad mutation through the script path · Ratifier verdict) before it goes live, manual dispatch until then; P7 Architect/Coordinator Director split REGISTERED-NOT-BUILT, evaluated only by SPEED AUDIT v2 numbers after P1/P3/P4 land (grader tiers stay a floor per R2, Ratifier untouched); SPEED AUDIT v2 re-measure mandatory after P1/P3/P4 · STARTUP-MODE DESIGN ROW (roadmap, Major — trigger changes are tier-3): tier profile targets Director ceremony (packet/receipt verbosity, turn count — 68% of weighted spend), never the bench (14%) or gates (2.4% wall) · run-10 deferrals (all OPEN reds, Ratifier receipt 5): hook HEAD-vs-pushed-ref coupling (MINOR), redteam `.txt` verdicts uncovered by `*.json` ignore (MINOR), GADD_BASE silent-pass in shipped checks (MAJOR — a garbage base ref makes every check swallow git errors and PASS vacuously; executor-demonstrated), OWNERSHIP.md not self-governed (MINOR), stale OWNERSHIP prose line re lane list (Trivial doc fix) · retro items: approval-matrix↔charter tier-3 seam · SR-8 flag: "disclosure-addition vs monotonic-tightening" boundary needs invariant wording · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-16 · SPEED AUDIT v1 RATIFIED (operator-amended rulings; audit stays
+  local-private per standing rule):** P1 deterministic context-ceiling enforcement
+  APPROVED (Standard, monotonic) — mechanical heartbeat; at threshold the session
+  HANDS OFF and a FRESH session resumes from repo state (lantern/BRIEF); sessions
+  never run past the ratified ceiling again. P3 composite receipts script APPROVED
+  (Standard, monotonic). P4 LANTERN rotation APPROVED (Trivial/Standard) — history
+  archived, never deleted. P6 adversary re-run session continuation REJECTED per the
+  auditor's own recommendation — adversary independence across rounds is
+  load-bearing; the arms-race record is the receipt (row added to
+  [docs/rejection-ledger.md](docs/rejection-ledger.md)). P2 `gadd-bench` runner
+  APPROVED AS TIER-3, CONDITIONAL (charter item 6) — sequenced ONLY after the
+  dogfood merge lands; before it becomes the live path, three receipts required:
+  (1) equivalence — one full bench run BOTH ways on the same diff, identical
+  verdict sets, with isolation, pinned models, verdict schema, and
+  re-run-failed-only byte-identical; (2) one known-bad mutation surfaces the same
+  blockers through the script path; (3) Ratifier verdict on the equivalence packet.
+  Until all three land, manual dispatch remains the path. P5 no standalone action —
+  numbers routed to the startup-mode design row (roadmap): the profile targets
+  Director ceremony (68% of weighted spend), never the bench (14%) or gates (2.4%).
+  NEW P7 REGISTERED, DO NOT BUILD: Architect/Coordinator split of the Director
+  (operator hypothesis — the top model does FEW, deep, artifact-producing judgment
+  passes: mission blueprints, JTBD/DoD docs, arbitrations, at-cap calls; the long
+  coordination march runs one tier down; spend follows judgment, not presence).
+  Evaluate ONLY after P1+P3+P4 land and SPEED AUDIT v2 re-measures the Director
+  share — numbers decide, including the possibility that P7 is unnecessary; grader
+  tiers remain a floor (R2); Ratifier untouched. RE-MEASURE directive: after
+  P1/P3/P4 land, run SPEED AUDIT v2 (same parser, same axes) to verify realized vs
+  estimated gains; any multi-agent hypothesis round is DEFERRED unless v2 shows an
+  unexplained residual. Transmission repairs disclosed (union-reconstruction rule,
+  operator may veto): "mutatie same blockers" read as "mutation surfaces the same
+  blockers"; "unexplresidual" read as "unexplained residual" — both inferred from
+  evident mid-word truncation, no design change.
 
 - **2026-07-16 · run #11 CLOSED — dogfood bench-green 5/5, merge parked at the human
   button:** Repair A executed by Fixer under the operator's verbatim ratification
