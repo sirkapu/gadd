@@ -26,7 +26,9 @@ in `adapters/lv/checks/lib/parity-metrics.mjs` (measurement engine) and
 Measured by `parity-metrics.mjs`, reported under `gating`. Gated by `10-ratchet-parity.sh`
 only for the metrics a deployment has actually put in `gadd/BASELINE.json`'s
 `parity.gating` block — unconfigured metrics are still measured and merged into
-`/tmp/gadd-metrics.json` but never fail the check.
+the run's metrics state file (`GADD_METRICS_FILE`, a mktemp-backed per-run path
+threaded in by `run-all.sh` since the run-13 shared-/tmp hardening) but never
+fail the check.
 
 | Metric | Definition |
 |---|---|
@@ -56,7 +58,7 @@ to `--strict`, `null` under the same tsc-unavailable rule), `test_files`, `sourc
 ## Relationship to the existing `07-ratchet-metrics.sh` check
 
 `07-ratchet-metrics.sh` (`skipped_tests`, fixed `max_file_loc`) predates this work and
-is untouched by it — it writes its own keys into `/tmp/gadd-metrics.json` before
+is untouched by it — it writes its own keys into the shared `GADD_METRICS_FILE` before
 `10-ratchet-parity.sh` runs and merges its own `parity` key in alongside them.
 `baseline.schema.json`'s pre-existing top-level `metrics.ts_errors` / `metrics.test_files`
 fields remain declared-but-unwired — no check populates those two specific keys; the
