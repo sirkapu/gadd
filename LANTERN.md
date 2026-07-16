@@ -31,8 +31,8 @@ Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to
   receipts) closing 5 reds (GADD_BASE silent-pass MAJOR, crash-demote, malformed-line
   wipe, /tmp substrate, OWNERSHIP fence spoof). RESIDUE GUARD CAUGHT the Director:
   my run-13 roadmap edit wrote a real deployment name into LANTERN.md — the shipped
-  `bin/residue-check.sh` fired on the merge tree (`sharpods` pattern), I anonymized to
-  the neutral register (`b128daa`) and re-pushed clean. The public-history-rewrite
+  `bin/residue-check.sh` fired on the merge tree (a blocklisted deployment-name
+  pattern), I anonymized to the neutral register (`b128daa`) and re-pushed clean. The public-history-rewrite
   decision for that one intermediate commit is PARKED TIER-3 (item 1) — options in the
   brief; the standing rule held (public entries use the anonymous register). P1 heartbeat
   BUILT (`mission/run-14-p1`, `74dd9b0`): deterministic transcript-size context meter
