@@ -10,7 +10,7 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| Active mission branch | `mission/run-10-dogfood` (3 commits, UNMERGED — parked tier-3: TEST_HONESTY blockers resolve only via the parked grader Repair A; merge packet ready the moment the operator rules). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
+| Active mission branch | `mission/run-10-dogfood` (6 commits, tip `fb40408`, MERGE-READY — bench 5/5 green, Ratifier APPROVE-CONDITIONAL with 7 receipts named; merge+push PARKED for the operator: the harness permission layer requires explicit human approval of the merge itself, "approve Repair A" doesn't cover it — merge-tree verified clean). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
 | Constitution | Ratifier-in-loop FULLY installed 2026-07-15 (operator: "go A, go B"): packets route to `gadd-ratifier` (isolated context, SR-1..8); only the charter's 7-item tier-3 list parks for the operator; item 7 at invariant wording (changes AFTER initial ratified installation). Nightly schedule LIVE: launchd `com.gadd.mission-loop`, 02:17, night-mode park-and-continue; installer `bin/schedule-loop.sh` (placeholder-only template tracked). Morning brief = the operator's surface (English, ≤1 page, decisions-first) |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
@@ -19,9 +19,33 @@ below (append-only) and in git.
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | Dogfood gadd-on-gadd EXECUTED run #10 (branch parked tier-3 on grader Repair A — operator decision pending). QUEUED: sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · run-10 deferrals (all OPEN reds, Ratifier receipt 5): hook HEAD-vs-pushed-ref coupling (MINOR), redteam `.txt` verdicts uncovered by `*.json` ignore (MINOR), GADD_BASE silent-pass in shipped checks (MAJOR — a garbage base ref makes every check swallow git errors and PASS vacuously; executor-demonstrated), OWNERSHIP.md not self-governed (MINOR), stale OWNERSHIP prose line re lane list (Trivial doc fix) · retro items: approval-matrix↔charter tier-3 seam · SR-8 flag: "disclosure-addition vs monotonic-tightening" boundary needs invariant wording · later: `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | Dogfood gadd-on-gadd COMPLETE on branch (run #11, bench 5/5) — merge+push = operator's button. NEXT-RUN PRIORITY (Ratifier-flagged): GADD_BASE silent-pass hardening (MAJOR red) + APEX-audit triage (operator-supplied external audit of the stale run-6 branch: fail-open gate modes + same-push defeat vectors; two vectors already narrowed by the dogfood branch — RED_TEAM/** governed, accept_authors live). QUEUED: sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · run-10 deferrals (all OPEN reds, Ratifier receipt 5): hook HEAD-vs-pushed-ref coupling (MINOR), redteam `.txt` verdicts uncovered by `*.json` ignore (MINOR), GADD_BASE silent-pass in shipped checks (MAJOR — a garbage base ref makes every check swallow git errors and PASS vacuously; executor-demonstrated), OWNERSHIP.md not self-governed (MINOR), stale OWNERSHIP prose line re lane list (Trivial doc fix) · retro items: approval-matrix↔charter tier-3 seam · SR-8 flag: "disclosure-addition vs monotonic-tightening" boundary needs invariant wording · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-16 · run #11 CLOSED — dogfood bench-green 5/5, merge parked at the human
+  button:** Repair A executed by Fixer under the operator's verbatim ratification
+  (`8cf6400`: +2 lines each on checks 01+07 — `::notice::… (available:false)` to
+  stderr when target dirs absent, never a finding; WITH-src behavior proven
+  byte-identical pre/post in scratch repos; installed copies byte-identical to
+  sources). TH round 2: B1/B2 closed but FAIL — disclosure had zero test coverage
+  (adversary's mutation passed every harness). Round-2 repair at the cap (SR-1, run-7
+  precedent reading, disclosed): `e52a3a3` adds `tests/inapplicability-fixtures.sh`
+  (4 scenarios/8 assertions, both directions pinned) + `fb40408` accept — check 02
+  correctly went CRITICAL on the unaccepted grader edit mid-round (the gate caught
+  its own repair; accepted per the ratification). TH round 3 PASS — the adversary
+  re-executed the mutation itself (2/8 assertions fail on the mutant), no escape
+  hatches. BENCH FINAL: 5/5. Ratifier merge verdict: APPROVE-CONDITIONAL, 7 receipts
+  named pre-execution, 5 STOPs; it verified gate/suites/byte-identity/merge-tree with
+  its own hands and ruled both disclosed interpretations correct (additive tests in
+  scope; deferred reds belong in the lantern, NOT ESCAPED.jsonl — SR-4). MERGE
+  EXECUTION VETOED by the harness permission layer: "approve Repair A" ≠ approval of
+  the merge itself — honored without workaround (STOP-3 spirit: no blind retry,
+  remote untouched). Item parks MERGE-READY at `fb40408`. Slack brief delivery also
+  permission-denied (run #10 + #11) — BRIEF.md is the standing surface until the
+  operator allowlists Slack sends. Anomalies: none in dispatch — 12/12 subagent
+  invocations clean across both runs. Coverage proxy stays 1 (SR-4: moves only when
+  gadd-ratchet runs on origin post-merge).
 
 - **2026-07-15 · mission-loop run #11 DECLARED (stale lock reclaimed — run-#10 release
   was permission-denied, documented recovery path worked):** OPERATOR RATIFIED Repair A
