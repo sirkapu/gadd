@@ -338,6 +338,28 @@ assert_eq "(12d) status mode with non-executable jq on PATH -> exit 2" "2" "$rc1
 assert_eq "(12d) non-executable-jq status still emits measured:false JSON on stdout" "true" \
   "$(printf '%s' "$out12d" | grep -q '"measured":false' && echo true || echo false)"
 
+# 12e: GENERATION-BROKEN jq (DATA_INTEGRITY blocker, run #17 round 2 — the jq-1.4
+# class): supports the identity filter (so a bare `jq -e .` probe passes) but
+# rejects `-n`/`--argjson`, on which every status emission depends. The probe must
+# exercise the real emission surface, so this jq fails closed: exit 2 + static
+# measured:false JSON, never empty-stdout exit 0.
+GENBROKENJQ="$WORK/genbrokenjq-bin"
+mkdir -p "$GENBROKENJQ"
+for b in bash sh env git sed ls head tail wc tr awk grep cat mktemp dirname basename; do
+  p="$(command -v "$b" 2>/dev/null)" && ln -s "$p" "$GENBROKENJQ/$b"
+done
+REALJQ="$(command -v jq)"
+{
+  printf '#!/bin/sh\n'
+  printf 'for a in "$@"; do case "$a" in -n|--argjson) exit 2;; esac; done\n'
+  printf 'exec %s "$@"\n' "$REALJQ"
+} > "$GENBROKENJQ/jq"
+chmod +x "$GENBROKENJQ/jq"
+out12e="$(PATH="$GENBROKENJQ" "$SCRIPT" status "$f1" 2>/dev/null)"; rc12e=$?
+assert_eq "(12e) status mode with generation-broken jq (identity ok, no -n/--argjson) -> exit 2" "2" "$rc12e"
+assert_eq "(12e) generation-broken-jq status still emits measured:false JSON on stdout" "true" \
+  "$(printf '%s' "$out12e" | grep -q '"measured":false' && echo true || echo false)"
+
 # ===================================================================================
 # Mutation demo 3 (scenario-10 counterpart): force the tier-1 validity condition to
 # literal-true in a scratch copy -> the mutant must reproduce the fabricated
