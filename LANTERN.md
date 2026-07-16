@@ -9,8 +9,8 @@ below (append-only) and in git.
 | Field | Value |
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
-| Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| Active mission branch | `mission/run-10-dogfood` (6 commits, tip `fb40408`, MERGE-READY — bench 5/5 green, Ratifier APPROVE-CONDITIONAL with 7 receipts named; merge+push PARKED for the operator: the harness permission layer requires explicit human approval of the merge itself, "approve Repair A" doesn't cover it — merge-tree verified clean). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
+| Coverage proxy | **2** — MEASURED 2026-07-16: (1) first deployment live on upstream gadd (origin tip `6b25ef5`); (2) gadd itself governed — dogfood merge `8a3f679` pushed and `gadd-ratchet` ran on origin, completed success (run 29474552876; `gadd-redteam` chained, success/keyless-degrade). Same criterion as deployment 1: the ratchet workflow runs on its pushes |
+| Active mission branch | none — run-10-dogfood MERGED+PUSHED 2026-07-16 (`8a3f679`, operator-approved with re-verify condition honored; all 7 Ratifier receipts produced; pre-push hook fired live and gated the push PASS; origin ratchet ran, success). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
 | Constitution | Ratifier-in-loop FULLY installed 2026-07-15 (operator: "go A, go B"): packets route to `gadd-ratifier` (isolated context, SR-1..8); only the charter's 7-item tier-3 list parks for the operator; item 7 at invariant wording (changes AFTER initial ratified installation). Nightly schedule LIVE: launchd `com.gadd.mission-loop`, 02:17, night-mode park-and-continue; installer `bin/schedule-loop.sh` (placeholder-only template tracked). Morning brief = the operator's surface (English, ≤1 page, decisions-first) |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
@@ -22,6 +22,25 @@ below (append-only) and in git.
 | Roadmap next | Dogfood gadd-on-gadd COMPLETE on branch (run #11, bench 5/5) — merge+push = operator's button. NEXT-RUN PRIORITY (Ratifier-flagged): GADD_BASE silent-pass hardening (MAJOR red) + APEX-audit triage (operator-supplied external audit of the stale run-6 branch: fail-open gate modes + same-push defeat vectors; two vectors already narrowed by the dogfood branch — RED_TEAM/** governed, accept_authors live). QUEUED: sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · SPEED RULINGS RATIFIED 2026-07-16 (log entry below; audit local-private): P1 context-ceiling enforcement (Standard, monotonic) + P3 composite receipts script (Standard, monotonic) + P4 LANTERN rotation (Trivial/Standard, archive-never-delete) APPROVED and queued; P2 `gadd-bench` runner TIER-3 CONDITIONAL — only after the dogfood merge, 3 receipts (equivalence both-ways · known-bad mutation through the script path · Ratifier verdict) before it goes live, manual dispatch until then; P7 Architect/Coordinator Director split REGISTERED-NOT-BUILT, evaluated only by SPEED AUDIT v2 numbers after P1/P3/P4 land (grader tiers stay a floor per R2, Ratifier untouched); SPEED AUDIT v2 re-measure mandatory after P1/P3/P4 · STARTUP-MODE DESIGN ROW (roadmap, Major — trigger changes are tier-3): tier profile targets Director ceremony (packet/receipt verbosity, turn count — 68% of weighted spend), never the bench (14%) or gates (2.4% wall) · run-10 deferrals (all OPEN reds, Ratifier receipt 5): hook HEAD-vs-pushed-ref coupling (MINOR), redteam `.txt` verdicts uncovered by `*.json` ignore (MINOR), GADD_BASE silent-pass in shipped checks (MAJOR — a garbage base ref makes every check swallow git errors and PASS vacuously; executor-demonstrated), OWNERSHIP.md not self-governed (MINOR), stale OWNERSHIP prose line re lane list (Trivial doc fix) · retro items: approval-matrix↔charter tier-3 seam · SR-8 flag: "disclosure-addition vs monotonic-tightening" boundary needs invariant wording · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-16 · DOGFOOD MERGED — gadd governs itself; coverage proxy 1→2 MEASURED:**
+  operator approved the merge with a re-verify condition (main had advanced since the
+  Ratifier's verdict base — measured: 2 docs-only commits, not 4 as estimated;
+  merge-tree re-verified clean; branch touched neither advanced file). Merge
+  `8a3f679` --no-ff (parents `c36e42a` + `fb40408`, exactly the 28 enumerated paths).
+  ALL 7 RATIFIER RECEIPTS PRODUCED: R1 two-parent/scope/clean-tree ✓ · R2 gate PASS
+  exit 0 on the merge commit ✓ · R3 inapplicability 8/8 + fleet 81/81 + parity 40/40
+  + residue clean ✓ · R4 byte-identity 12 checks + 2 libs + 3 schemas ✓ · R5
+  LANTERN.md identical to pre-merge main ✓ · R6 non-force append push
+  `c36e42a..8a3f679`, THE PRE-PUSH HOOK FIRED LIVE and gated the push (gate PASS with
+  the new disclosure notices visible) ✓ · R7 ESCAPED.jsonl 0 bytes, proxy moved only
+  after measurement ✓. ORIGIN CI: `gadd-ratchet` ran on the merge push, completed
+  SUCCESS (run 29474552876); `gadd-redteam` chained, success (keyless degrade —
+  ANTHROPIC_API_KEY not configured on origin; documented behavior). Coverage proxy
+  1→2 by the same criterion as deployment 1. P2 `gadd-bench` sequencing condition
+  ("after the dogfood merge") is now satisfied — its 3 receipts remain owed before it
+  goes live. Next-run priorities unchanged: GADD_BASE silent-pass hardening (MAJOR
+  red) · APEX-audit triage · P1/P3/P4 speed items.
 
 - **2026-07-16 · SPEED AUDIT v1 RATIFIED (operator-amended rulings; audit stays
   local-private per standing rule):** P1 deterministic context-ceiling enforcement
