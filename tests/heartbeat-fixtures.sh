@@ -149,6 +149,57 @@ assert_eq "(8) cannot-measure path prints a loud CANNOT MEASURE line" "true" \
   "$(printf '%s' "$out8" | grep -q 'CANNOT MEASURE' && echo true || echo false)"
 
 # ===================================================================================
+# Scenario 9: GADD_CTX_CEILING_TOKENS validation (DATA_INTEGRITY blocker, run #14) —
+# a non-numeric ceiling must never fall through to the -ge comparison as a false
+# (bash-error) result and print OK/exit 0 on an over-ceiling transcript. It must
+# fail closed: exit 2, loud line, in BOTH check and status modes.
+# ===================================================================================
+f9="$WORK/s09.jsonl"
+usage_line 0 100000 350000 > "$f9"   # total 450000 — over the default 400000 ceiling
+
+# 9a: garbage non-numeric ceiling ("400k") -> exit 2, never OK/exit 0.
+out9a="$(GADD_CTX_CEILING_TOKENS=400k "$SCRIPT" check "$f9")"; rc9a=$?
+assert_eq "(9a) garbage ceiling '400k' -> exit 2 (never 0/OK on over-ceiling data)" "2" "$rc9a"
+assert_eq "(9a) garbage ceiling prints loud CANNOT MEASURE line" "true" \
+  "$(printf '%s' "$out9a" | grep -q 'CANNOT MEASURE' && echo true || echo false)"
+assert_eq "(9a) garbage ceiling never prints OK" "false" \
+  "$(printf '%s' "$out9a" | grep -q ' OK ' && echo true || echo false)"
+status9a="$(GADD_CTX_CEILING_TOKENS=400k "$SCRIPT" status "$f9")"; rc9as=$?
+assert_eq "(9a) garbage ceiling, status mode -> exit 2" "2" "$rc9as"
+assert_eq "(9a) garbage ceiling, status JSON measured:false" "false" \
+  "$(printf '%s' "$status9a" | jq -r '.measured')"
+
+# 9b: purely alphabetic ceiling ("abc") -> same fail-closed behavior.
+out9b="$(GADD_CTX_CEILING_TOKENS=abc "$SCRIPT" check "$f9")"; rc9b=$?
+assert_eq "(9b) garbage ceiling 'abc' -> exit 2" "2" "$rc9b"
+assert_eq "(9b) garbage ceiling 'abc' prints loud CANNOT MEASURE line" "true" \
+  "$(printf '%s' "$out9b" | grep -q 'CANNOT MEASURE' && echo true || echo false)"
+
+# 9c: zero ceiling -> non-positive, must fail closed (exit 2), not divide/compare
+# against a zero threshold.
+out9c="$(GADD_CTX_CEILING_TOKENS=0 "$SCRIPT" check "$f9")"; rc9c=$?
+assert_eq "(9c) zero ceiling -> exit 2 (non-positive rejected)" "2" "$rc9c"
+
+# 9d: negative ceiling -> non-positive, must fail closed (exit 2).
+out9d="$(GADD_CTX_CEILING_TOKENS=-5 "$SCRIPT" check "$f9")"; rc9d=$?
+assert_eq "(9d) negative ceiling '-5' -> exit 2 (non-positive rejected)" "2" "$rc9d"
+
+# 9e: valid numeric ceiling override still works, both directions — lowered valid
+# ceiling still fires exit 3 on over-ceiling data (regression guard: the new
+# validation must not break the existing, already-passing override path).
+out9e="$(GADD_CTX_CEILING_TOKENS=100000 "$SCRIPT" check "$f9")"; rc9e=$?
+assert_eq "(9e) valid numeric ceiling override -> still exits 3 on over-ceiling data" "3" "$rc9e"
+assert_eq "(9e) valid override loud CEILING REACHED line still present" "true" \
+  "$(printf '%s' "$out9e" | grep -q 'CEILING REACHED' && echo true || echo false)"
+
+# 9f: valid numeric ceiling override, raised above the measured value -> exit 0 OK,
+# proving valid overrides still pass through correctly in the other direction too.
+out9f="$(GADD_CTX_CEILING_TOKENS=999999999 "$SCRIPT" check "$f9")"; rc9f=$?
+assert_eq "(9f) valid raised ceiling override -> exit 0 OK on now-under-ceiling data" "0" "$rc9f"
+assert_eq "(9f) valid raised override prints OK line" "true" \
+  "$(printf '%s' "$out9f" | grep -q '\] OK ' && echo true || echo false)"
+
+# ===================================================================================
 # Mutation demo: strip the ceiling comparison in a scratch copy of the script ->
 # the fixture that depends on exit 3 (scenario 2) must fail against the mutant.
 # This is a live demonstration, not a pass/fail assertion of this suite itself.
@@ -168,6 +219,31 @@ if [ "$mutant_rc" != "3" ]; then
   echo "mutation demo CONFIRMED: ceiling-stripped mutant no longer exits 3 on an over-ceiling transcript (got exit $mutant_rc) — the real script's comparison is load-bearing."
 else
   echo "mutation demo INCONCLUSIVE: mutant still exited 3 — sed substitution did not take effect as expected."
+fi
+
+# ===================================================================================
+# Mutation demo 2 (DATA_INTEGRITY blocker, run #14): strip the CEILING validation
+# guard in a scratch copy -> scenario 9a (garbage ceiling "400k" -> exit 2) must fail
+# against the mutant, since a garbage CEILING would then flow unvalidated into the
+# check-mode `-ge` comparison (bash errors, reads false, script falls through to OK).
+# ===================================================================================
+echo ""
+echo "--- mutation demo: CEILING validation guard stripped ---"
+mutant2="$WORK/loop-heartbeat.mutant2.sh"
+cp "$SCRIPT" "$mutant2"
+chmod +x "$mutant2"
+# Replace the validation condition with a literal-false guard so the mutant never
+# rejects any CEILING value, however garbage, and falls straight through.
+sed -i.bak 's/if ! \[ "\$CEILING" -gt 0 \] 2>\/dev\/null; then/if false; then/' "$mutant2"
+rm -f "$mutant2.bak"
+mutant2_out="$(GADD_CTX_CEILING_TOKENS=400k "$mutant2" check "$f9" 2>&1)"
+mutant2_rc=$?
+if [ "$mutant2_rc" = "2" ]; then
+  echo "mutation demo INCONCLUSIVE: mutant still exited 2 — sed substitution did not take effect as expected."
+elif printf '%s' "$mutant2_out" | grep -q '\] OK '; then
+  echo "mutation demo CONFIRMED: validation-stripped mutant prints OK (exit $mutant2_rc) on an over-ceiling transcript with garbage GADD_CTX_CEILING_TOKENS=400k — the real script's guard is load-bearing (fail-open reproduced on the mutant)."
+else
+  echo "mutation demo CONFIRMED (partial): validation-stripped mutant no longer exits 2 on garbage ceiling (got exit $mutant2_rc, output: $mutant2_out)."
 fi
 
 # ===================================================================================
