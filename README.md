@@ -84,7 +84,9 @@ Priorities are driven by real governed repos; OSS milestones (releases, new adap
 activate once ≥1 repo runs upstream gadd end-to-end with verdict data.
 
 - [x] Boundary adapter for Lovable (`adapters/lv`)
-- [ ] In-loop adapter for Claude Code (`adapters/cc`) — in progress: agents + `/gadd-loop` shipped; one-command installer and blocking CI/hooks pending
+- [ ] In-loop adapter for Claude Code (`adapters/cc`) — agents + `/gadd-loop` + `/mission-loop` +
+      `/objective-audit` + one-command installer (`bin/install.sh --adapter=cc`) shipped; blocking
+      CI/hooks extraction pending
 - [x] v0.3 — measurement instrument wired: escaped-regression ledger (`gadd/ESCAPED.jsonl`) + `bin/gadd-fleet.mjs` aggregation (docs/measurement.md)
 - [x] v0.3 cont'd — first repo governed by upstream gadd (live, verdict data flowing)
 - [ ] v0.3 cont'd — gadd dogfooding itself

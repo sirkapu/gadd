@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- launchd user-agent TEMPLATE for the gadd mission loop — placeholders only,
+     NEVER real usernames or home paths (this repo is public). Rendered by
+     bin/schedule-loop.sh into $HOME/Library/LaunchAgents/com.gadd.mission-loop.plist.
+
+     Schedule: nightly at 02:17 local time (StartCalendarInterval below).
+     RunAtLoad is false — the loop runs on schedule only, never on login/boot,
+     so a laptop reboot at 9am doesn't trigger an unplanned run.
+
+     Night-mode park-and-continue governs every scheduled run (see
+     .claude/commands/mission-loop.md): a run that finds only parked work
+     (items awaiting operator ratification) reports QUEUE EMPTY and exits
+     cleanly — that is the system working as designed, not a failure. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.gadd.mission-loop</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>-lc</string>
+		<string>cd {{REPO_PATH}} &amp;&amp; {{CLAUDE_BIN}} -p "$(cat .claude/commands/mission-loop.md)" &gt;&gt; {{LOG_PATH}} 2&gt;&amp;1</string>
+	</array>
+
+	<key>StartCalendarInterval</key>
+	<dict>
+		<key>Hour</key>
+		<integer>2</integer>
+		<key>Minute</key>
+		<integer>17</integer>
+	</dict>
+
+	<key>RunAtLoad</key>
+	<false/>
+</dict>
+</plist>
