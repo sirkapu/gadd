@@ -23,6 +23,11 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-15 · mission-loop run #10 DECLARED (lock acquired, bootstrap step 0):**
+  objective RATIFIED ✓, plan = phase 4 remnants (roadmap row). First pick: dogfood
+  gadd-on-gadd — highest leverage by objective-function trace (moves the coverage
+  proxy: gadd itself becomes a governed repo generating verdict data).
+
 - **2026-07-15 · run #9 (operator-attended) — phase 3 SHIPPED (`263934e`):** lock
   acquired per new bootstrap step 0 (this run's own guard). Trivial: exit-4 fail-closed
   doc line (Ratifier follow-up). Standard: cc one-command installer (root install.sh cc
