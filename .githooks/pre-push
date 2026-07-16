@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# gadd pre-push gate — deterministic-only, fail-closed (spec invariant 3: RED_TEAM/LLM
+# judgment never decides acceptance; only the deterministic gate does).
+# Installed via: git config core.hooksPath .githooks
+#
+# Blocks the push unless .gadd/checks/run-all.sh both RUNS and returns PASS. A gate
+# that cannot run (missing run-all.sh, missing BASELINE.json, missing jq/node, etc.)
+# is treated as a failure, never as a silent pass — "fail closed" per dispatch step 6.
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$ROOT" ]; then
+  echo "gadd pre-push: FAIL-CLOSED — not inside a git working tree; cannot resolve repo root. Push blocked." >&2
+  exit 1
+fi
+cd "$ROOT" || { echo "gadd pre-push: FAIL-CLOSED — cannot cd to repo root ($ROOT). Push blocked." >&2; exit 1; }
+
+RUN_ALL="$ROOT/.gadd/checks/run-all.sh"
+if [ ! -f "$RUN_ALL" ]; then
+  echo "gadd pre-push: FAIL-CLOSED — $RUN_ALL missing; the deterministic gate cannot run. Push blocked." >&2
+  exit 1
+fi
+
+if [ ! -f "$ROOT/gadd/BASELINE.json" ]; then
+  echo "gadd pre-push: FAIL-CLOSED — gadd/BASELINE.json missing; the gate has no accepted baseline to run against. Push blocked." >&2
+  exit 1
+fi
+
+bash "$RUN_ALL"
+rc=$?
+
+if [ "$rc" -ne 0 ]; then
+  echo "gadd pre-push: gate verdict is not PASS (run-all.sh exit $rc). Push blocked." >&2
+  echo "gadd pre-push: RED_TEAM/LLM judgment cannot override this — only a green deterministic gate unblocks the push." >&2
+  exit 1
+fi
+
+echo "gadd pre-push: deterministic gate PASS. Proceeding with push." >&2
+exit 0

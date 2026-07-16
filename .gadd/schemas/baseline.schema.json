@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gadd baseline",
+  "type": "object",
+  "required": ["accepted_sha"],
+  "properties": {
+    "accepted_sha": { "type": "string" },
+    "agents_md_sha": { "type": "string" },
+    "accept_authors": { "type": "array", "items": { "type": "string" } },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "skipped_tests": { "type": "integer" },
+        "test_files": { "type": "integer" },
+        "max_file_loc": { "type": "integer" },
+        "ts_errors": { "type": "integer" }
+      }
+    },
+    "parity": {
+      "type": "object",
+      "properties": {
+        "exempt": { "type": "array", "items": { "type": "string" } },
+        "ceilings": {
+          "type": "object",
+          "properties": {
+            "tsx": { "type": "integer" },
+            "ts": { "type": "integer" }
+          }
+        },
+        "gating": {
+          "type": "object",
+          "properties": {
+            "eslint_errors": { "type": "integer" },
+            "eslint_warnings": { "type": "integer" },
+            "tsc_errors": { "type": "integer" },
+            "any_count": { "type": "integer" },
+            "eslint_disables": { "type": "integer" },
+            "oversized_files": { "type": "integer" },
+            "duplicate_windows": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}

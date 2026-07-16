@@ -9,3 +9,9 @@ GAD/
 
 # Morning brief — local-only operator surface (charter amendment 2026-07-15)
 BRIEF.md
+
+# gadd-lv dogfood (run #10): run-all.sh verdicts are ephemeral per-run output —
+# gadd-ratchet.yml uploads them as a CI build artifact, never commits them back
+# (install.sh's accept-commit is `commit -am`, tracked files only). Local gate
+# runs must not leave the tree dirty, so they're gitignored, not committed.
+gadd/verdicts/*.json
