@@ -8,6 +8,12 @@
 
 ## Iteration 0 — Bootstrap (every run)
 
+0. **Single-instance lock (ratified 2026-07-15, monotonic guard):** run
+   `bin/loop-lock.sh acquire` BEFORE anything else. If it exits 3 (a live loop holds
+   the lock), log one line — "mission loop already active — no-op exit" — and end the
+   session cleanly: never run two loops on one tree. Stale locks (dead holder) are
+   reclaimed automatically. Release with `bin/loop-lock.sh release` after the final
+   STATUS block / brief delivery.
 1. Read root `CLAUDE.md` + lantern. Declare this session in the lantern: `mission-loop run #N`.
 2. **Objective check:** does a ratified objective function exist (North Star + guards + DoD, marked RATIFIED)?
    - **NO →** run the Architect Objective Audit (per `.claude/commands/objective-audit.md`, honoring its READ-ONLY and scope-boundary rules), write the report, and **STOP: AWAITING RATIFICATION.** The loop never invents or self-ratifies its own objective.
