@@ -11,7 +11,7 @@ below (append-only) and in git.
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
 | Active mission branch | none — run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
-| Constitution | Ratifier-in-loop PARTIALLY installed 2026-07-15: `.claude/agents/gadd-ratifier.md` live (SR-1..8, tier-3 human list, verdict contract; charter verbatim stays local-private, item 5 anonymized per SR-5). PARKED ON OPERATOR (platform permission layer declined the loop rewiring itself — not retried by design): mission-loop.md packet-routing amendment + launchd schedule wiring |
+| Constitution | Ratifier-in-loop FULLY installed 2026-07-15 (operator: "go A, go B"): packets route to `gadd-ratifier` (isolated context, SR-1..8); only the charter's 7-item tier-3 list parks for the operator; item 7 at invariant wording (changes AFTER initial ratified installation). Nightly schedule LIVE: launchd `com.gadd.mission-loop`, 02:17, night-mode park-and-continue; installer `bin/schedule-loop.sh` (placeholder-only template tracked). Morning brief = the operator's surface (English, ≤1 page, decisions-first) |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
 | Objective function | RATIFIED 2026-07-14: maximize escaped-regression catches across governed repos (proxy until instrumented: upstream-governed-repo coverage × verdicts retained), subject to guards G1–G5 (`audits/objective-audit-v1.md` §3). Internal-first; OSS milestones gate on ≥1 upstream-governed repo |
@@ -22,6 +22,30 @@ below (append-only) and in git.
 | Roadmap next | QUEUED for next /mission-loop: phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`, test-hardening notes, R3 dispatch watchdog — ratified 2026-07-15: 0-tool-use completions <15s = invocation failure, auto-resume once before any strike or verdict counts · SEED SELF-APPLICATION per `audits/gadd-seed-payload.md`, ratified 2026-07-15 Standard: VERBATIM sections word-for-word with union-reconstruction + manifest if damaged, [DERIVE] slots as annotated (routing from `git ls-tree` tracked-only; session-model half operator-supplied), "Explicitly OUT" list binding, includes the §8 rejection-ledger entry with its transit corollary) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-15 · run #8 — wave CLOSED, constitution live (operator: "go A, go B" +
+  three ratifications):** loop rewired — packets → Ratifier, charter tier-3 list in
+  mission-loop.md (go-A); nightly launchd job installed and loaded, receipt-verified,
+  rendered plist outside the repo (go-B); charter item-7 invariant wording adopted;
+  bench no-checkout ruling written (matrix #3 + gate-matrix); monotonic tightenings
+  landed (residue message-surface scan + system-grep canary + explicit git-log errors +
+  honest banner; seed-audit target-column parser) — TEST_HONESTY PASS with executed
+  mutations. Ratifier verdict on the merge: APPROVE-CONDITIONAL, receipts 1–6, all
+  produced; it judged the charter edit under the OLD stricter item-7 wording and
+  verified monotonicity, path-leak absence, and both engine canaries with its own
+  hands. Its lantern line, verbatim: "Run-8 rewiring approved conditional on receipts
+  1-6 — charter item-7 invariant adopted under completed tier-3 grant, nightly loop
+  wiring cleared with placeholder-only plist verified leak-free, and all guard changes
+  proven strictly monotonic by the Ratifier's own hands." One R3 execution: the
+  Ratifier's first invocation failed with the exact watchdog signature (0 tools, ~6 s);
+  one auto-resume recovered it — 7/7 lifetime. Its STOP #5 stands as a standing guard:
+  any scheduled run that merges or pushes without a logged Ratifier verdict → bootout
+  the job, PARK-TIER-3. WAVE RECEIPTS: R-a seed-audit shown · R-b routing = ls-tree
+  (two independent verifiers) · R-c 40/40 + 81/81 + R5 clean on all four pushes ·
+  R-d demonstrated twice (both verdicts logged with receipts) · R-e first morning
+  brief delivered ≤1 page. Remaining v0.3: phase 3 (cc installer + ship commands),
+  phase 4 remnants (dogfood, sandbox→tests, R3 watchdog automation in dispatch
+  plumbing).
 
 - **2026-07-15 · mission-loop run #7 — wave "self-governing gadd" (dispatch arrived
   transit-damaged; repairs reconstructed from readable sources, manifest disclosed
