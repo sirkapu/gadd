@@ -23,6 +23,15 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-15 · mission-loop run #11 DECLARED (stale lock reclaimed — run-#10 release
+  was permission-denied, documented recovery path worked):** OPERATOR RATIFIED Repair A
+  verbatim ("approve Repair A — relaunch the loop") — the tier-3 item-6 park lifts.
+  Plan: Fixer executes the grader disclosure fix on `adapters/lv/checks/{01,07}` +
+  byte-reinstall, TEST_HONESTY re-runs on the new diff, merge packet → Ratifier.
+  NEW OPERATOR INPUT: an external "APEX AUDIT" report attached (audited the stale
+  run-6 branch) — triage queued this run; first read corroborates the logged MAJOR
+  fail-open red + OWNERSHIP self-governance MINOR, adds same-push defeat vectors.
+
 - **2026-07-15 · run #10 CLOSED — dogfood EXECUTED, parked tier-3 on one grader ruling:**
   phase-4 dogfood declared Major (spec §6 overrides the audit plan's Standard label —
   gate/baseline installation; tier floors, R2). Executor installed the lv suite on gadd
