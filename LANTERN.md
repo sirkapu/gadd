@@ -25,6 +25,43 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #20 DECLARED (same session, 86% ceiling at declaration —
+  compact run; operator: "approve merge — execute the run-19 chain… CODEOWNERS: read
+  in full. One question before I ratify — [tests/ corpus vs agent-owned lane]…
+  Relaunch the loop (next pick: item 3 accept-signer, design-first as planned).")**
+  — run-19 chain EXECUTED: merged `d2106f5` --no-ff, ALL 6 receipts green at the
+  merge commit (gate PASS 0 findings base `aa0b9e3` · failclosed 32/32 · fleet
+  81/81 · parity 40/40 · byte pins ×2 · accept diff 1-line · main not
+  branch-protected so advisory trivially non-required), pushed `2fbb39d..d2106f5`
+  hook PASS. CODEOWNERS QUESTION ANSWERED WITH RECEIPTS (operator's concern
+  CONFIRMED): tests/ fixture-weakening via external PR is caught by NOTHING
+  deterministic today — OWNERSHIP.md lists tests/** agent-owned (lane check blind),
+  zero workflows/hooks execute tests/*.sh (grep receipt), Ratifier sees packets not
+  PRs; CODEOWNERS AMENDED to add /tests/ + /bin/ (same logic, North Star
+  instruments), pending ratification; flagged: promote DX item "CI runs tests/*.sh"
+  (deterministic complement) + OWNERSHIP-vs-item-6 wording tension (SR-8 flavor,
+  invariant rewrite queued). Run-20 plan: accept-signer DESIGN PASS (isolated
+  design agent, read-only; proposal → operator ratification, build next run).
+  **CLOSE (same entry):** DESIGN PASS DONE — `audits/accept-signer-design-v1.md`
+  (local-private): RECOMMENDED = SSH commit signing verified against a BASE-PINNED
+  `gadd/allowed_signers` (trust anchor read from GADD_BASE only — probe showed a
+  working-tree anchor loses to self-enrollment, the base-pinned anchor defeats it;
+  audit probe-F spoof dead; spoof+sign dead via principal matching); GPG rejected,
+  token-file = git<2.34 fallback, GitHub API = CI supplement only; 5-step
+  monotonic migration (legacy %ae fallback with escalated nudge, signed genesis
+  accept, installer closes the fresh-install window); 3 open questions for the
+  operator (design file + brief). AWAITING RATIFICATION — build = next run's
+  first pick once ratified (item-6, Ratifier classifies). LOG-REPAIR DISCLOSED:
+  the run-20 declaration edit accidentally consumed the run-19 entry's header
+  line; restored verbatim in this same edit — append-only intent preserved, the
+  defect and repair both named. Anomalies: that one (Director-caused, self-caught)
+  — 1/1 subagent invocation clean. Stopped: conditions 2 (RATIFICATION NEEDED:
+  signer design + amended CODEOWNERS await the operator) + 4 (88% of ceiling at
+  design return — NEXT RUN MUST BE A FRESH SESSION). Session totals runs #16–#20:
+  5 runs, 3 merges landed on origin (`2aeae9f` `2fbb39d` `d2106f5`) + run-16
+  charter/close pushes, 3 item-6 L-class rulings, 2 audits, 1 design pass, 12/12
+  subagent invocations clean, residue clean at every close.
+
 - **mission-loop run #19 DECLARED (same session; operator ruled on the PR-flow queue,
   verbatim: "1. APPROVED — base_sha canonicalization + ancestry + explicit
   squash-incompatibility error. Ratifier classifies under item-6 with receipts.
