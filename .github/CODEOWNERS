@@ -1,0 +1,12 @@
+# gadd grader / tier-3 territory — operator review required on external PRs
+/RED_TEAM/                 @sirkapu
+/.gadd/checks/             @sirkapu
+/adapters/*/checks/        @sirkapu
+/spec/                     @sirkapu
+/gadd/BASELINE.json        @sirkapu
+/OWNERSHIP.md              @sirkapu
+/.claude/agents/gadd-ratifier.md @sirkapu
+/.githooks/                @sirkapu
+/.github/                  @sirkapu
+/tests/                    @sirkapu
+/bin/                      @sirkapu
