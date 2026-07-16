@@ -1,0 +1,37 @@
+name: gadd-advisory
+# ADVISORY, NON-GATING (PR-flow item 5, operator-approved run #19): runs the
+# deterministic gadd suite on the PR's synthetic merge commit so reviewers see a
+# verdict BEFORE merging instead of after (the ratchet's first verdict otherwise
+# lands post-merge). A red job here is a signal to the reviewer, never a gate:
+# do NOT mark this check "required" in branch protection — acceptance is decided
+# by the deterministic gate + accept dance, and integration ≠ acceptance
+# (spec/BOUNDARY-GOVERNANCE.md). See docs/pr-adoption.md.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  advisory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # full history — accepted_sha resolution + ancestry assertion need it
+      - name: Run gadd check suite (advisory — PR merge preview)
+        id: suite
+        run: bash .gadd/checks/run-all.sh
+        continue-on-error: true
+      - name: Upload verdict
+        uses: actions/upload-artifact@v4
+        with:
+          name: gadd-advisory-${{ github.event.pull_request.head.sha || github.sha }}
+          path: gadd/verdicts/*.json
+          if-no-files-found: ignore
+      - name: Surface advisory verdict (signal only — never a merge gate)
+        if: steps.suite.outcome == 'failure'
+        run: |
+          echo "ADVISORY verdict FAIL on the PR merge preview — merging is not blocked by gadd (integration ≠ acceptance), but this PR as merged would go red on main's ratchet. See the uploaded verdict artifact."
+          exit 1
