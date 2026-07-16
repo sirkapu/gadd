@@ -19,9 +19,26 @@ below (append-only) and in git.
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | QUEUED for next /mission-loop: phase 3 (cc installer; ship /mission-loop + /objective-audit in `adapters/cc/commands/`) · phase 4 (dogfood, sandbox→`tests/`, test-hardening notes, R3 dispatch watchdog — ratified 2026-07-15: 0-tool-use completions <15s = invocation failure, auto-resume once before any strike or verdict counts · SEED SELF-APPLICATION per `audits/gadd-seed-payload.md`, ratified 2026-07-15 Standard: VERBATIM sections word-for-word with union-reconstruction + manifest if damaged, [DERIVE] slots as annotated (routing from `git ls-tree` tracked-only; session-model half operator-supplied), "Explicitly OUT" list binding, includes the §8 rejection-ledger entry with its transit corollary) · later: `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | Phase 3 DONE 2026-07-15 (cc installer + shipped commands, run #9). Seed self-application DONE (run #7). QUEUED: phase 4 remnants — dogfood gadd-on-gadd (blocking CI/hooks), sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · retro items: approval-matrix↔charter tier-3 seam harmonization (REGRESSION note, run #9) · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
+
+- **2026-07-15 · run #9 (operator-attended) — phase 3 SHIPPED (`263934e`):** lock
+  acquired per new bootstrap step 0 (this run's own guard). Trivial: exit-4 fail-closed
+  doc line (Ratifier follow-up). Standard: cc one-command installer (root install.sh cc
+  case dispatches; scratch-install verified BOTH adapters on the merged tree) +
+  /mission-loop + /objective-audit shipped in `adapters/cc/commands/` with dependency
+  closure (Ratifier agent, loop-lock, schedule wiring — all byte-identical to sources;
+  one disclosed generalization: brief channel name → deployment convention). Bench 2/2
+  triggered (CF PASS r1 — full verbatim diff audit; REGRESSION PASS r1 — live installs,
+  40/40 + 81/81). Ratifier: APPROVE-CONDITIONAL, 7 receipts, all produced (two-parent
+  no-ff, tree identity, scratch installs, gates, byte-identity, 12-file scope, FF push).
+  R5 clean (tree+metadata+message, 12 patterns). Prior in-session: single-instance lock
+  ratified+merged (`4063062`, Ratifier 7 receipts); brief-delivery amendment executed on
+  the FIRST dispatch (this dispatch's item 1 was a transit duplicate — confirmed
+  idempotent, not re-executed). QUEUED from bench notes: installer clobber-on-reinstall
+  awareness; approval-matrix↔charter tier-3 seam (governance, deliberately not silently
+  fixed). Stopped: context threshold — phase 4 remnants go to the scheduled chain.
 
 - **2026-07-15 · run #8 — wave CLOSED, constitution live (operator: "go A, go B" +
   three ratifications):** loop rewired — packets → Ratifier, charter tier-3 list in
