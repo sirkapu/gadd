@@ -25,6 +25,23 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **2026-07-16 · POST-RUN-20 OPERATOR RATIFICATIONS (all three, verbatim-quoted in
+  the dispatch):** (1) ACCEPT-SIGNER DESIGN RATIFIED with answers — (a) DEDICATED
+  gadd-accept keypair, never the personal GitHub key; "the private key is a tier-3
+  secret with its own lifecycle"; (b) accept_authors KEPT PERMANENTLY as second
+  factor; (c) CI ALSO runs the signature check, pubkeys only. BUILD = RUN #21
+  FIRST PICK (item-6, Ratifier classifies; design + probe receipts in
+  audits/accept-signer-design-v1.md). (2) CODEOWNERS RATIFIED as a PRECISE DELTA
+  (run-19 text + /tests/ + /bin/, nothing else) — WRITTEN + COMMITTED `11a2fce`,
+  receipt DELTA-EXACT (empty diff vs run-19 text + the two lines); "CI runs
+  tests/*.sh" DX item PROMOTED (approved, queue → build). (3) OWNERSHIP.md-vs-
+  item-6 wording tension APPROVED for the queue, invariant-grade fix. RUN #21 =
+  FRESH SESSION (confirmed), first picks: signer build (Standard/Major, full
+  ceremony, with the three answers as constraints) · CI-runs-tests wiring ·
+  OWNERSHIP wording fix · then h1/h2 + remaining queues. Local main now 2 ahead
+  of origin unpushed (`b373410` run-20 close + `11a2fce` CODEOWNERS) — next
+  chain or "push main" carries them.
+
 - **mission-loop run #20 DECLARED (same session, 86% ceiling at declaration —
   compact run; operator: "approve merge — execute the run-19 chain… CODEOWNERS: read
   in full. One question before I ratify — [tests/ corpus vs agent-owned lane]…
