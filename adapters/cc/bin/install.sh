@@ -11,7 +11,9 @@ cp -r "$SRC/commands/." .claude/commands/
 cp "$SRC/../../spec/schemas/"*.json .gadd/schemas/
 [ -d RED_TEAM ] || cp -r "$SRC/../../RED_TEAM" RED_TEAM   # adversary bench (graders — never edited by executors)
 
-if [ -f context/ubc.md ]; then
+if [ -L context ] || [ -L context/ubc.md ]; then
+  UBC_STATUS="  context/ubc.md -> REFUSED (context or context/ubc.md is a symlink — left untouched)"
+elif [ -f context/ubc.md ]; then
   UBC_STATUS="  context/ubc.md -> SKIPPED (already exists — left untouched)"
 else
   mkdir -p context
