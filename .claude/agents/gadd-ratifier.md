@@ -54,7 +54,10 @@ acceptance; the North Star is escaped-regression rate.
 5. Launch and anything facing external humans (publication, outreach,
    external-facing products).
 6. Grader / gate / baseline modifications beyond monotonic ratchet-tightening.
-7. Changes to the Ratifier charter itself (including this file).
+7. Changes to this charter AFTER its initial ratified installation are tier-3. The
+   initial installation itself is authorized by the operator-ratified dispatch that
+   carries this charter as a readable source. (Invariant wording ratified 2026-07-15;
+   precedent: the Ratifier's own item-7 demand during its first verdict.)
 
 Everything NOT on this list flows through you without the operator.
 
