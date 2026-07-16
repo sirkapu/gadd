@@ -9,6 +9,37 @@
 # non-zero exit on any failure. adapters/lv/checks/ is the source of truth
 # (.gadd/checks/ in THIS repo is an installed, byte-identical copy).
 #
+# S11-S14 added in REPAIR ROUND 1 (RED_TEAM-demonstrated blockers against the
+# original S1-S10 build; fixtures are append-only per tests/CLAUDE.md — none
+# of S1-S10 were edited or removed, only the underlying check-02 logic they
+# exercise was hardened):
+#   BLOCKER 1 (SECURITY + DATA_INTEGRITY): the enrolled per-commit loop only
+#     walked commits touching gadd/BASELINE.json, so a commit touching ONLY
+#     gadd/allowed_signers inherited the "clean" exemption from an unrelated,
+#     separate, passing gadd/BASELINE.json commit in the same range — full
+#     accept-gate compromise on a fully-enrolled deployment. Fixed by walking
+#     BOTH governed accept-files with one combined pathspec. S11a/S11b cover
+#     the two demonstrated shapes.
+#   BLOCKER 2 (REGRESSION): a fresh install's OWNERSHIP.md ships the
+#     gadd/allowed_signers fence line unconditionally (item 2's real
+#     template), even before any signer is enrolled — so "enroll later"
+#     (no GADD_SIGNER_PUBKEY at install, then following the installer's own
+#     printed steps) tripped the generic "Governed-side files were modified"
+#     CRITICAL, because the old exemption required signers_base non-empty.
+#     Fixed with a legacy-first-enrollment exemption. S12 covers it.
+#   BLOCKER 3 (REGRESSION): GADD_SIGNER_PUBKEY given as a normal 3-field
+#     ssh-keygen .pub file (keytype base64 comment) was misclassified as an
+#     already-complete allowed_signers line by a field-count heuristic,
+#     writing "ssh-ed25519" itself as the PRINCIPAL — every signed accept
+#     then failed verify-commit while the installer printed success. Fixed
+#     by classifying on the first token (a known SSH key type -> bare/.pub
+#     key -> prepend $EMAIL) instead of field count. S13 covers it.
+#   DATA_INTEGRITY note (non-blocking, folded in): a malformed (unparseable)
+#     base gadd/BASELINE.json silently disabled the author factor (`jq ...
+#     // empty` reads identically to "not set"). Fixed with an explicit
+#     fail-closed CRITICAL when the base file exists but does not parse.
+#     S14 covers it.
+#
 # Scenarios (S1-S10, see run-21 mission brief for the full spec):
 #   S1  enrolled + signed + allowlisted accept -> no findings (PASS)
 #   S2  enrolled + unsigned --author spoof replay -> CRITICAL (signature factor)
@@ -465,6 +496,136 @@ rc="$(run_check02 s10push2 "$r10" "$PUSH1_10" "$PUSH2_10")"
 assert_zero "(S10 push2) exit 0" "$rc"
 assert_ndjson_no_finding "(S10 push2) rotation remove-old-key (new-key-pinned base) -> PASS" \
   "$OUT/s10push2.findings.ndjson" "lane-violation"
+
+# ===================================================================================
+# S11a (REPAIR ROUND 1, BLOCKER 1 — SECURITY): two commits in ONE range —
+# a legit signed "gadd: accept" (touches gadd/BASELINE.json only) plus a
+# SEPARATE unsigned attacker commit touching ONLY gadd/allowed_signers
+# (appending an attacker pubkey under a foreign author). Pre-fix, the
+# attacker commit was invisible to the per-commit loop (pathspec was
+# gadd/BASELINE.json only) and inherited the legit commit's "clean"
+# accept_bad=0 via the exemption -> zero findings, attacker key lands in the
+# accepted base. Post-fix: CRITICAL (factor: subject, since the attacker's
+# message never claims to be a "gadd: accept").
+# ===================================================================================
+r11a="$WORK/s11a"
+GEN11a="$(mk_enrolled_repo "$r11a" '["accept@test.local"]' key11a "accept@test.local")"
+KEY11A="$KEYDIR/key11a.pub"
+bump_baseline "$r11a" "s11alegit"
+accept_commit "$r11a" "gadd: accept s11a legit" "accept@test.local" "$KEY11A" >/dev/null
+AKEY11A="$(gen_key key11a-attacker)"
+{ cat "$r11a/gadd/allowed_signers"; printf '%s\n' "attacker@evil.test $(cat "$AKEY11A")"; } > "$r11a/allowed_signers.tmp"
+mv "$r11a/allowed_signers.tmp" "$r11a/gadd/allowed_signers"
+MAL11A="$(accept_commit "$r11a" "chore: rotate signer roster" "attacker@evil.test" "")"
+rc="$(run_check02 s11a "$r11a" "$GEN11a" "$MAL11A")"
+assert_zero "(S11a) exit 0" "$rc"
+assert_ndjson_finding "(S11a) BLOCKER-1 SECURITY: legit signed accept + separate unsigned attacker commit touching only allowed_signers -> CRITICAL" \
+  "$OUT/s11a.findings.ndjson" "lane-violation" "CRITICAL" "factor: subject"
+
+# ===================================================================================
+# S11b (REPAIR ROUND 1, BLOCKER 1 — DATA_INTEGRITY): base already enrolled
+# and accepted from a PRIOR cycle (GADD_BASE = a prior legit signed accept);
+# the CURRENT range contains a single unsigned attacker commit touching ONLY
+# gadd/allowed_signers, with no gadd/BASELINE.json touch anywhere in range.
+# The generic OWNERSHIP-fence fallback already caught this shape pre-fix
+# (baseline_touched was empty, denying the old exemption) but only with the
+# generic message; post-fix it is walked by the per-commit loop too and gets
+# the specific factor-named CRITICAL as well.
+# ===================================================================================
+r11b="$WORK/s11b"
+GEN11b="$(mk_enrolled_repo "$r11b" '["accept@test.local"]' key11b "accept@test.local")"
+KEY11B="$KEYDIR/key11b.pub"
+bump_baseline "$r11b" "s11blegit"
+LEGIT11B="$(accept_commit "$r11b" "gadd: accept s11b legit" "accept@test.local" "$KEY11B")"
+AKEY11B="$(gen_key key11b-attacker)"
+{ cat "$r11b/gadd/allowed_signers"; printf '%s\n' "attacker@evil.test $(cat "$AKEY11B")"; } > "$r11b/allowed_signers.tmp"
+mv "$r11b/allowed_signers.tmp" "$r11b/gadd/allowed_signers"
+MAL11B="$(accept_commit "$r11b" "chore: rotate signer roster" "attacker@evil.test" "")"
+rc="$(run_check02 s11b "$r11b" "$LEGIT11B" "$MAL11B")"
+assert_zero "(S11b) exit 0" "$rc"
+assert_ndjson_finding "(S11b) BLOCKER-1 DATA_INTEGRITY: single unsigned commit touching only allowed_signers, no baseline touch in range -> CRITICAL" \
+  "$OUT/s11b.findings.ndjson" "lane-violation" "CRITICAL" "factor: subject"
+
+# ===================================================================================
+# S12 (REPAIR ROUND 1, BLOCKER 2): legacy deployment, "enroll later" — the
+# base's OWNERSHIP fence ALREADY governs gadd/allowed_signers (the real
+# fresh-install shape once the template ships the fence line
+# unconditionally), but no signers file exists yet (signers_base empty).
+# A valid legacy accept (correct subject, author allowlisted, unsigned — no
+# base anchor exists yet to sign against) ADDS gadd/allowed_signers in the
+# same commit that bumps gadd/BASELINE.json -> PASS, no findings at all
+# (accept_authors is set and head now has signers, so neither legacy nudge
+# bullet fires either).
+# ===================================================================================
+r12="$WORK/s12"
+mk_signer_repo "$r12" '["accept@test.local"]' 1
+BASE12="$(cd "$r12" && git rev-parse HEAD)"
+KEY12="$(gen_key key12)"
+printf '%s\n' "accept@test.local $(cat "$KEY12")" > "$r12/gadd/allowed_signers"
+bump_baseline "$r12" "s12head"
+HEAD12="$(accept_commit "$r12" "gadd: accept s12 enroll-later" "accept@test.local" "")"
+rc="$(run_check02 s12 "$r12" "$BASE12" "$HEAD12")"
+assert_zero "(S12) exit 0" "$rc"
+assert_ndjson_no_finding "(S12) BLOCKER-2: legacy enroll-later (fence already governs allowed_signers, valid unsigned accept) -> PASS" \
+  "$OUT/s12.findings.ndjson" "lane-violation"
+
+# ===================================================================================
+# S13 (REPAIR ROUND 1, BLOCKER 3): adapters/lv/bin/install.sh given a REAL
+# ssh-keygen .pub file (3 fields: keytype, base64, comment) via
+# GADD_SIGNER_PUBKEY. Must classify by the first token (a known SSH key
+# type) and prepend git user.email as the principal, dropping the comment —
+# NOT write the 3-field line verbatim (which would make "ssh-ed25519" itself
+# the principal and brick every future verify-commit). A subsequent signed
+# accept using that key must then verify cleanly.
+# ===================================================================================
+INSTALL_SH="${INSTALL_SH:-$REPO_ROOT/adapters/lv/bin/install.sh}"
+r13="$WORK/s13"
+mkdir -p "$r13"
+( cd "$r13" && git init -q && git config user.email s13@test.local && git config user.name t && git commit -q --allow-empty -m init ) >/dev/null
+KEY13="$(gen_key key13)"
+FULL_PUB13="$(cat "$KEY13")"   # real ssh-keygen .pub: "keytype base64 comment" (3 fields)
+(
+  cd "$r13"
+  GADD_SIGNER_PUBKEY="$FULL_PUB13" bash "$INSTALL_SH"
+) >"$OUT/s13-install.stdout" 2>"$OUT/s13-install.stderr"
+PRINCIPAL13="$(awk '{print $1}' "$r13/gadd/allowed_signers" 2>/dev/null)"
+assert_eq "(S13) BLOCKER-3: installer classifies a 3-field .pub by first token -> principal is EMAIL, not the keytype" \
+  "s13@test.local" "$PRINCIPAL13"
+
+( cd "$r13" && git add -A && git commit -q -m "chore: install gadd-lv" ) >/dev/null
+INSTALLED13="$(cd "$r13" && git rev-parse HEAD)"
+bump_baseline "$r13" "s13head"
+HEAD13="$(accept_commit "$r13" "gadd: accept s13" "s13@test.local" "$KEY13")"
+rc="$(run_check02 s13 "$r13" "$INSTALLED13" "$HEAD13")"
+assert_zero "(S13) exit 0" "$rc"
+assert_ndjson_no_finding "(S13) signed accept with the correctly-classified key verifies -> PASS" \
+  "$OUT/s13.findings.ndjson" "lane-violation"
+
+# ===================================================================================
+# S14 (REPAIR ROUND 1, DATA_INTEGRITY note, non-blocking): the base's
+# gadd/BASELINE.json EXISTS but does not parse as JSON. Pre-fix, `jq ... //
+# empty || true` silently read this identically to "accept_authors not set",
+# dropping the author factor with no disclosure. Post-fix: an explicit
+# fail-closed CRITICAL naming the parse failure.
+# ===================================================================================
+r14="$WORK/s14"
+mkdir -p "$r14/gadd"
+( cd "$r14" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf 'not valid json{{{' > "$r14/gadd/BASELINE.json"
+cat > "$r14/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r14" && git add -A && git commit -q -m init ) >/dev/null
+BASE14="$(cd "$r14" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r14/gadd/BASELINE.json"
+HEAD14="$(accept_commit "$r14" "gadd: accept s14 malformed-base" "accept@test.local" "")"
+rc="$(run_check02 s14 "$r14" "$BASE14" "$HEAD14")"
+assert_zero "(S14) exit 0" "$rc"
+assert_ndjson_finding "(S14) DATA_INTEGRITY note: malformed base gadd/BASELINE.json -> CRITICAL fail-closed, not a silent skip" \
+  "$OUT/s14.findings.ndjson" "lane-violation" "CRITICAL" "does not parse"
 
 # ===================================================================================
 # BOTH-DIRECTION RECEIPT: S2, S3, S4, S5, S7 replayed against the PRE-upgrade

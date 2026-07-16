@@ -19,16 +19,25 @@ EMAIL="$(git config user.email || true)"
 # migration step 5 — write allowed_signers BEFORE the baseline so a fresh
 # install's genesis baseline already anchors it, closing the fresh-install
 # legacy window). GADD_SIGNER_PUBKEY may be a full allowed_signers line
-# ("principal keytype base64...") or a bare "keytype base64" pair, in which
-# case EMAIL is prefixed as the principal.
+# ("principal keytype base64...") or a bare/.pub key ("keytype base64
+# [comment]"), in which case EMAIL is prefixed as the principal and any
+# trailing comment is dropped. Classify by the FIRST TOKEN, not field count
+# (repair round 1, blocker 3): a normal ssh-keygen .pub file has 3 fields
+# (keytype, base64, comment), which the original field-count heuristic
+# misread as an already-complete allowed_signers line — writing "ssh-ed25519"
+# itself as the PRINCIPAL and silently bricking every future verify-commit.
 if [ -n "${GADD_SIGNER_PUBKEY:-}" ]; then
-  NF=$(printf '%s' "$GADD_SIGNER_PUBKEY" | awk '{print NF}')
-  if [ "$NF" -le 2 ]; then
-    [ -z "$EMAIL" ] && { echo "GADD_SIGNER_PUBKEY given in bare 'keytype base64' form but git user.email is unset — cannot derive a principal"; exit 1; }
-    printf '%s %s\n' "$EMAIL" "$GADD_SIGNER_PUBKEY" > gadd/allowed_signers
-  else
-    printf '%s\n' "$GADD_SIGNER_PUBKEY" > gadd/allowed_signers
-  fi
+  FIRST_TOKEN="$(printf '%s' "$GADD_SIGNER_PUBKEY" | awk '{print $1}')"
+  case "$FIRST_TOKEN" in
+    ssh-ed25519|ssh-rsa|ecdsa-sha2-*|sk-ssh-*|sk-ecdsa-*)
+      [ -z "$EMAIL" ] && { echo "GADD_SIGNER_PUBKEY given as a bare/.pub key but git user.email is unset — cannot derive a principal"; exit 1; }
+      KEY_NO_COMMENT="$(printf '%s' "$GADD_SIGNER_PUBKEY" | awk '{print $1, $2}')"
+      printf '%s %s\n' "$EMAIL" "$KEY_NO_COMMENT" > gadd/allowed_signers
+      ;;
+    *)
+      printf '%s\n' "$GADD_SIGNER_PUBKEY" > gadd/allowed_signers
+      ;;
+  esac
   echo "Signer enrolled: gadd/allowed_signers written — genesis baseline will anchor it."
 else
   echo "WARNING: no GADD_SIGNER_PUBKEY given — accept-commit authorship is spoofable via git"
