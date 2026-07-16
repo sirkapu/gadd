@@ -11,6 +11,7 @@ dispatch for token economy**: the expensive model directs, cheap models burn the
 | RED_TEAM — judgment adversaries (SECURITY, DATA_INTEGRITY, REGRESSION) | Opus, read-only tools | `agents/gadd-rt-*.md`, one isolated subagent each |
 | RED_TEAM — structural adversaries (CONTRACT_FIDELITY, TEST_HONESTY) | Haiku, read-only tools | `agents/gadd-rt-*.md`, one isolated subagent each |
 | Fixer | Opus, separate instance | `agents/gadd-fixer.md` |
+| Ratifier (packet arbitration for `/mission-loop`) | Opus, read-only tools | `agents/gadd-ratifier.md`, isolated subagent |
 
 The RED_TEAM bench is five SEPARATE subagent invocations launched in parallel — never one
 agent role-playing five perspectives. Each `gadd-rt-*` agent reads its own definition from
@@ -27,13 +28,23 @@ spirals); failed adversaries alone re-run after a fix; the 2-round arbitration c
 invariant 6) kills runaway loops.
 
 ## Install
-Copy into your repo (or user config):
+One command, run from the target repo root:
 ```bash
-cp -r agents/   <repo>/.claude/agents/
-cp -r commands/ <repo>/.claude/commands/
-cp -r ../../RED_TEAM/ <repo>/RED_TEAM/   # the bench definitions — graders; executors never touch them
+bash adapters/cc/bin/install.sh
+# or via the root dispatcher:
+bash bin/install.sh --adapter=cc
 ```
-Then: `/gadd-loop <feature or spec path>`.
+This installs: `agents/` → `.claude/agents/` (executor, mechanic, fixer, the five RED_TEAM
+adversary agents, and the Ratifier); `commands/` → `.claude/commands/` (`/gadd-loop`,
+`/mission-loop`, `/objective-audit`); `RED_TEAM/` → `RED_TEAM/` at the repo root (the bench
+definitions — graders; executors never touch them; only copied if absent); `spec/schemas/*.json`
+→ `.gadd/schemas/` (verdict + baseline schemas); and `/mission-loop`'s own dependencies
+(`bin/loop-lock.sh`, `bin/schedule-loop.sh`, `bin/mission-loop.plist.template`) so the shipped
+commands work standalone in the target repo, not just inside gadd itself.
+
+Then: `/gadd-loop <feature or spec path>` for one feature loop, or `/mission-loop` for the
+autonomous run-until-done driver (bootstraps via `/objective-audit` if no ratified objective
+function exists yet).
 
 Pairs with the deterministic ratchet from `adapters/lv/checks` if installed (`.gadd/`): the loop
 runs it as its gate in step 3. Blocking CI + hooks extraction: on the roadmap.
