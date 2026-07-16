@@ -64,7 +64,41 @@ acceptance; the North Star is escaped-regression rate.
 4. Money (spend, subscriptions, funding, anything billable).
 5. Launch and anything facing external humans (publication, outreach,
    external-facing products).
-6. Grader / gate / baseline modifications beyond monotonic ratchet-tightening.
+
+**(6) Grader, gate, and baseline modifications — except the three receipt-gated
+classes below, which the Ratifier may approve without the operator.** Classification
+into V/L/O is the **Ratifier's, never the proposer's**; the strictest applicable
+class governs; a receipt inconsistent with the filed class auto-parks tier-3. The
+**"ratified fixture corpus"** = the operator-owned fixtures under `tests/` and
+`RED_TEAM/` at accepted_sha; a proposer may not narrow it.
+- **V — value tightening:** only baseline metric values move, strictly in the
+  ratcheting direction; no logic change. *Receipt: value diff + gate green.*
+- **L — logic tightening:** every behavioral delta converts an accepting path into a
+  rejecting/finding path. *Receipts (all three): (i) whole-corpus prior-verdict
+  preservation — verdicts across the ENTIRE existing fixture corpus (healthy AND
+  rejection fixtures) are byte-stable, except deltas that are themselves
+  silent-accept→loud-reject conversions, each listed in the monotonicity manifest;
+  no corpus input may flip red→green; (ii) monotonicity manifest — no detection
+  removed, no threshold loosened; (iii) both-direction fixtures pinning every new
+  rejection path, mutation-bites shown.*
+- **O — observability:** touches no verdict-producing path (disclosure/notices/
+  logging). *Receipts (both): (a) byte-identical verdicts across the entire ratified
+  corpus; (b) a diff showing every hunk lies outside verdict/exit-code/finding
+  computation. Claim is "zero verdict deltas across the ratified corpus", never "any
+  input" (SR-4).*
+
+Any change that removes a detection, loosens a threshold, can flip any input
+red→green, alters the verdict alphabet / exit-code mapping / finding taxonomy, or
+cannot produce its class receipts → operator, tier-3, no exceptions. RED_TEAM
+adversary definitions and bench contracts stay operator-only regardless of class.
+The baseline-advance/accept commit landing with a V/L/O grader edit is in-scope of
+the same single verdict — one packet, both commits. SR-7 unchanged.
+
+*(Item 6 ratified verbatim by the operator 2026-07-17 — "as presented", per the
+run-15 record — and written here on the operator's run-16 dispatch: "Item-6 verbatim
+charter-write into .claude/agents/gadd-ratifier.md (ratified text from brief #15,
+byte-exact)." Supersedes the prior one-line item 6.)*
+
 7. Changes to this charter AFTER its initial ratified installation are tier-3. The
    initial installation itself is authorized by the operator-ratified dispatch that
    carries this charter as a readable source. (Invariant wording ratified 2026-07-15;
