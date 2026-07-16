@@ -10,7 +10,7 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **2** — MEASURED 2026-07-16: (1) first deployment live on upstream gadd (origin tip `6b25ef5`); (2) gadd itself governed — dogfood merge `8a3f679` pushed and `gadd-ratchet` ran on origin, completed success (run 29474552876; `gadd-redteam` chained, success/keyless-degrade). Same criterion as deployment 1: the ratchet workflow runs on its pushes |
-| Active mission branch | `mission/run-21-signer` (run #21 in flight — accept-signer build, item-6, Major). Prior: run-19 chain MERGED `d2106f5` and LIVE on origin; origin main now AT `02f9165` (run-20 close + CODEOWNERS + post-run-20 ratifications all pushed — the run-20 "2 ahead unpushed" note is superseded, verified `origin/main..main` empty). Stale detail of the merged run-19 packet: `mission/run-19-prflow` was MERGE-READY at `cd37bc0` (PR-flow items 1+4+5 + accept commit, one packet; Ratifier APPROVE-CONDITIONAL — THIRD item-6 L-class ruling, 6 receipts, 4 STOPs incl. no-squash fence; merge = operator's button). Local main also carries the unpushed run-18/19 lantern closes. Prior chains all LIVE on origin: run-17 merged `2fbb39d` (n1+n2 heartbeat), run-16 merged `2aeae9f`, receipts green throughout. Prior: run-14-p1 MERGED+PUSHED 2026-07-17 (`65a9f91` on origin; operator-approved full chain; all 6 Ratifier receipts produced; pre-push hook gated PASS; the heartbeat is now LIVE in loop step 6). Prior: run-13-failclosed MERGED+PUSHED 2026-07-16 (`bb2b699`, operator-approved full chain; 5 reds closed on main). Prior: run-12-speed MERGED+PUSHED 2026-07-16 (`b74c389`, operator-approved; one-hunk union resolution in LANTERN.md disclosed, both sides byte-receipt). Prior: run-10-dogfood MERGED+PUSHED 2026-07-16 (`8a3f679`, operator-approved with re-verify condition honored; all 7 Ratifier receipts produced; pre-push hook fired live and gated the push PASS; origin ratchet ran, success). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
+| Active mission branch | TWO run-21 branches MERGE-READY at the operator's tier-3 button (both parked; independent of each other): (1) `mission/run-21-signer` at `6cd5411` — ACCEPT-SIGNER, item-6 **L-class** (Ratifier APPROVE-CONDITIONAL, 4th item-6 L ruling, 10 hand-reproduced receipts, 5 STOPs incl. no-squash/merge-commit-only + post-merge one-MINOR re-check + byte-identity + no-forbidden-surface + merge=operator button); build `d0ac88e` + repair `8947b1f` (bench 5/5 after 1 repair round) + re-accept `6cd5411`. (2) `mission/run-21-citests` at `eaa5396` — CI runs `tests/*.sh` fixture corpus on push+PR (SECURITY PASS, Standard; dual-located byte-identical `gadd-tests.yml`, glob-based, signal-only, no accept commit — not a governed-lane edit). Prior: run-19 chain MERGED `d2106f5` LIVE on origin; origin main AT `02f9165` (run-20 close + CODEOWNERS + post-run-20 ratifications pushed; verified `origin/main..main` empty at run-21 start, then local main advanced with run-21 lantern commits — unpushed). Stale detail of the merged run-19 packet: `mission/run-19-prflow` was MERGE-READY at `cd37bc0` (PR-flow items 1+4+5 + accept commit, one packet; Ratifier APPROVE-CONDITIONAL — THIRD item-6 L-class ruling, 6 receipts, 4 STOPs incl. no-squash fence; merge = operator's button). Local main also carries the unpushed run-18/19 lantern closes. Prior chains all LIVE on origin: run-17 merged `2fbb39d` (n1+n2 heartbeat), run-16 merged `2aeae9f`, receipts green throughout. Prior: run-14-p1 MERGED+PUSHED 2026-07-17 (`65a9f91` on origin; operator-approved full chain; all 6 Ratifier receipts produced; pre-push hook gated PASS; the heartbeat is now LIVE in loop step 6). Prior: run-13-failclosed MERGED+PUSHED 2026-07-16 (`bb2b699`, operator-approved full chain; 5 reds closed on main). Prior: run-12-speed MERGED+PUSHED 2026-07-16 (`b74c389`, operator-approved; one-hunk union resolution in LANTERN.md disclosed, both sides byte-receipt). Prior: run-10-dogfood MERGED+PUSHED 2026-07-16 (`8a3f679`, operator-approved with re-verify condition honored; all 7 Ratifier receipts produced; pre-push hook fired live and gated the push PASS; origin ratchet ran, success). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
 | Constitution | Ratifier-in-loop FULLY installed 2026-07-15 (operator: "go A, go B"): packets route to `gadd-ratifier` (isolated context, SR-1..**9**); only the charter's 7-item tier-3 list parks for the operator; item 7 at invariant wording. NAMING (operator-ratified 2026-07-17, item 7): "mesa-in-loop" branding RETIRED — the in-loop context is "the Ratifier" full stop; "Mesa" = operator-side counsel space ONLY; SR-9 added (in-loop products attributed to the Ratifier; mesa/operator attributions require verbatim-quotable text). ITEM-6 VERBATIM WRITE DONE (run #16, `53801cd`): V/L/O receipt-gated classes live in the charter, byte-exact from the run-15 brief (SHA-1 receipt `8005f17b`), quoting the run-16 dispatch; local-private canonical synced; FIRST L-CLASS EXERCISE same run (heartbeat fix — Ratifier classified, approved in-loop, merge still parked). Nightly schedule LIVE: launchd `com.gadd.mission-loop`, 02:17, night-mode park-and-continue; installer `bin/schedule-loop.sh` (placeholder-only template tracked). Morning brief = the operator's surface (English, ≤1 page, decisions-first) |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
@@ -24,6 +24,75 @@ below (append-only) and in git.
 ## Log (append-only, newest first)
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
+
+- **mission-loop run #21 CLOSE (same session; 2 items completed, both MERGE-READY at
+  the operator's tier-3 button; heartbeat at close ~31% of ceiling, measured):**
+  ITEM 1 ACCEPT-SIGNER (item-6, Major, full bench) — built to
+  `audits/accept-signer-design-v1.md` under the operator's 3 ratified answers.
+  Round-1 bench: CF PASS · TH PASS (48-scenario suite + mutation battery) ·
+  SECURITY/DATA_INTEGRITY/REGRESSION FAIL with 3 REAL demonstrated blockers
+  (trust-anchor smuggling: an unsigned commit touching ONLY `gadd/allowed_signers`
+  alongside a legit signed accept widened the base anchor — full accept-gate
+  compromise on an ENROLLED deployment, proven MISSED by the round-1 check; +
+  enroll-later path bricked; + installer 3-field-`.pub` misclassification wrote
+  `ssh-ed25519` as the principal so no accept ever verified). SR-1 repair round 1
+  (`8947b1f`): combined pathspec `-- gadd/BASELINE.json gadd/allowed_signers` so
+  every signers-touching commit is itself accept-verified; legacy-first-enrollment
+  exemption (subject+author only, no signature, when base has no signers);
+  malformed-base-BASELINE fail-closed CRITICAL. Round-2 re-bench of the 3 failed
+  adversaries: ALL PASS (SECURITY also probed evil-merge/history-simplification,
+  delete-re-add, ratchet-dodge — all fail closed). NET BENCH 5/5. RATIFIER:
+  APPROVE-CONDITIONAL, **item-6 L-class (4th such ruling)**, 10 receipts
+  reproduced by its own hands (incl. round-1 smuggle proven MISSED-then-closed,
+  git<2.34 fail-closed, monotonicity manifest — no corpus input flips red→green),
+  5 STOPs; merge = operator button. Post-accept live gate PASS with exactly one
+  MINOR (the designed "enroll a signer, second factor only" disclosure on gadd's
+  own unenrolled deployment). Files: both `02-lane-violation.sh` copies
+  (byte-identical `a8a94e7ae67f…bdc01`), `adapters/lv/bin/install.sh`,
+  `adapters/lv/templates/OWNERSHIP.md` (+`gadd/allowed_signers` fence line),
+  `docs/pr-adoption.md`, new `tests/signer-fixtures.sh` (48/48). Prior suites all
+  green (failclosed 32 · inapplicability 8 · parity 40 · heartbeat 52 · fleet 81).
+  ITEM 2 CI-RUNS-TESTS (Standard) — `mission/run-21-citests` `eaa5396`:
+  `gadd-tests.yml` runs every `tests/*.sh` on push+PR, fails the job after running
+  all, glob-based (auto-picks up new suites), signal-only, dual-located
+  byte-identical, ships via the existing installer glob. SECURITY PASS (plain
+  `pull_request` not `pull_request_target`, `contents: read`, no secrets, no
+  `${{}}` injection, injection-safe glob, strict subset of the ratified advisory
+  pattern). NO accept commit (not a governed-lane edit). ITEM 3 OWNERSHIP-vs-item-6
+  WORDING drafted as a RATIFICATION PROPOSAL, NOT self-served (invariant-grade,
+  SR-8): the tension is that the charter (item-6) names `tests/`+`RED_TEAM/` the
+  operator-owned ratified corpus ("proposer may not narrow it") while gadd's own
+  OWNERSHIP.md lists `tests/**` under "Agent-owned (free to modify)" and the
+  gadd-governed fence omits `tests/` (lane check blind). Root cause: "own" is
+  overloaded — OWNERSHIP.md means "not gated by the deterministic lane check #2",
+  the charter means "operator-owned corpus, protected from NARROWING by the L-class
+  whole-corpus-preservation receipt + CODEOWNERS + CI". Proposed reconciliation
+  text quoted in BRIEF.md; both readings are honest and enforcement is UNCHANGED —
+  it's a clarifying disclosure edit to OWNERSHIP.md (a governed file → needs accept
+  + it's charter-adjacent) so it parks for the operator. Anomalies: one
+  Director-caused, self-caught — the first close commit landed on
+  `mission/run-21-signer` (HEAD had followed the executor onto that branch) instead
+  of main, which would have injected LANTERN.md into the Ratifier-verified signer
+  packet (breaking STOP-4). Caught immediately on branch inspection; repaired by
+  cherry-picking the close onto main (`7a2d147`) and `git branch -f`-ing the signer
+  branch back to its ratified tip `6cd5411`; re-verified the packet
+  `44f09ed..6cd5411` has zero LANTERN content. 12/12 subagent invocations clean
+  (the 3 round-1 bench FAILs are the bench WORKING, not anomalies; the SR-1 repair
+  is logged). SR-1 executions: 1 (repair round 1). Residue: clean (12 patterns, 0
+  hits, engine canary passed) — run before the close commit. Stopped: condition 1 (TIER-3 — both items
+  at operator merge buttons) + condition 2 (RATIFICATION NEEDED — the OWNERSHIP
+  wording proposal). Task budget 2/5 used; context healthy (~31%) but a tier-3
+  wall is the right close. NEW QUEUE from run-21: (a) DI note — valid-JSON-but-
+  wrong-TYPE base BASELINE.json (e.g. `[1,2,3]`, or accept_authors as a string)
+  slips the parse guard and silently drops the author factor to a MAJOR nudge
+  (low impact — base trust-pinned, enrolled path still gates on signature; L-class
+  tightening candidate); (b) `timeout-minutes` on PR-triggered CI jobs (gadd-tests
+  AND the already-merged gadd-advisory — uniform hardening, generic public-repo
+  abuse class, SECURITY note, not introduced by this run); (c) additive-MINOR
+  stacking awareness — external adopters carrying 2 pre-existing MINORs newly FAIL
+  on a legacy accept until they enroll a signer (design-accepted, operator-aware
+  at merge). h1/h2 heartbeat-emission-exit hardening still QUEUED, deferred to
+  next run.
 
 - **mission-loop run #21 DECLARED (2026-07-16 system clock; FRESH SESSION per run-20
   close; lock acquired pid-fresh; heartbeat at declaration: 19.5% of ceiling):**
