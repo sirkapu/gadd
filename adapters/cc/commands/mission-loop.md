@@ -28,7 +28,7 @@
 3. **Execute** per the build loop: spec per tier → dispatch executor(s) → deterministic gate → adversarial bench (if tiered) → Fixer, repair cap 2 → verdict.
 4. **Record:** lantern update, conventional commit(s) on a branch, metrics touched (which guard/North-Star proxy moved, with numbers).
 5. **Measure:** objective-function delta this iteration. An iteration that moved no metric and unblocked nothing counts as a no-progress strike.
-6. **Check parks and stop conditions** (below). Item parked → pick the next unblocked item. No global stop fired → next iteration.
+6. **Check parks and stop conditions** (below). Every iteration first runs `bin/loop-heartbeat.sh check` (deterministic context-ceiling enforcement, ratified SPEED AUDIT v1 P1, 2026-07-16): exit 3 fires stop condition 3 (CONTEXT THRESHOLD) mechanically — measured, not felt; exit 2 (cannot measure) is treated the same as exit 3, fail-closed. Item parked → pick the next unblocked item. No global stop fired → next iteration.
 
 ## Packet routing — the Ratifier (constitutional amendment, operator-ratified 2026-07-15)
 
