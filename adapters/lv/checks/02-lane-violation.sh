@@ -4,10 +4,32 @@
 # AND whose author email is in the ACCEPTED baseline's accept_authors allowlist (read from
 # GADD_BASE, not the working tree, so an agent cannot self-enroll in the same push).
 # No allowlist in the accepted baseline -> legacy subject-only check + a MINOR nudge.
+#
+# Fail-closed hardening E: the governed-glob fence itself is read from the
+# ACCEPTED BASE (git show "$GADD_BASE:OWNERSHIP.md") — the same trust-source
+# discipline as accept_authors above, so an agent cannot widen or empty its
+# own lanes in the same push it is trying to smuggle a governed-file edit
+# through. Working-tree OWNERSHIP.md is consulted ONLY when the base has no
+# OWNERSHIP.md at all (fresh installs, nothing accepted yet to read).
 source "$(dirname "$0")/lib/common.sh"
-[ -f OWNERSHIP.md ] || { finding "lane-violation" "MAJOR" "OWNERSHIP.md missing — lanes unenforceable"; exit 0; }
-globs="$(awk '/^```gadd-governed/{f=1;next}/^```/{f=0}f' OWNERSHIP.md | sed '/^\s*$/d;/^#/d')"
-[ -z "$globs" ] && exit 0
+
+ownership_source="base"
+ownership_content="$(git show "$GADD_BASE:OWNERSHIP.md" 2>/dev/null || true)"
+if [ -z "$ownership_content" ]; then
+  if [ -f OWNERSHIP.md ]; then
+    ownership_source="working-tree (fresh install — accepted base has no OWNERSHIP.md)"
+    ownership_content="$(cat OWNERSHIP.md)"
+  else
+    finding "lane-violation" "MAJOR" "OWNERSHIP.md missing in accepted base and working tree — lanes unenforceable"
+    exit 0
+  fi
+fi
+
+globs="$(printf '%s\n' "$ownership_content" | awk '/^```gadd-governed/{f=1;next}/^```/{f=0}f' | sed '/^\s*$/d;/^#/d')"
+if [ -z "$globs" ]; then
+  echo "::notice::lane-violation — governed fence empty/missing in $ownership_source OWNERSHIP.md — nothing to enforce this run" >&2
+  exit 0
+fi
 viol=""
 while IFS= read -r f; do
   [ -z "$f" ] && continue

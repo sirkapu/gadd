@@ -15,6 +15,7 @@ comment-stripping) — uncomment and set a real path to enforce them.
 RED_TEAM/**
 .gadd/checks/**
 gadd/BASELINE.json
+OWNERSHIP.md
 # Placeholder example only, inert while commented — uncomment to govern
 # an additional grader-owned lane, e.g. {{AGENT_PROMPTS_DIR}}/*
 ```
