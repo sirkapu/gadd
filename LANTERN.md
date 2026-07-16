@@ -23,6 +23,12 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
+- **2026-07-16 · mission-loop run #12 DECLARED (lock acquired):** objective RATIFIED ✓,
+  tree clean on main `f9f47d2`. Picks per roadmap priority: (1) APEX-audit triage
+  (read-only, informs the spec) → (2) fail-open gate hardening incl. GADD_BASE
+  silent-pass (MAJOR red; grader change → Ratifier judges monotonicity) → (3) speed
+  items P3/P4 if budget allows.
+
 - **2026-07-16 · DOGFOOD MERGED — gadd governs itself; coverage proxy 1→2 MEASURED:**
   operator approved the merge with a re-verify condition (main had advanced since the
   Ratifier's verdict base — measured: 2 docs-only commits, not 4 as estimated;
