@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 source "$(dirname "$0")/lib/common.sh"
+[ ! -d src ] && \
+  echo "::notice::ratchet-metrics inapplicable — src absent (available:false)" >&2
 b_skip=$(baseline_get '.metrics.skipped_tests'); b_loc=$(baseline_get '.metrics.max_file_loc')
 cur_skip=$(grep -rE '\.(skip|only)\(|xit\(|xdescribe\(' --include='*.test.*' --include='*.spec.*' -c src 2>/dev/null | awk -F: '{s+=$2} END{print s+0}')
 cur_loc=$(find src -name '*.ts' -o -name '*.tsx' 2>/dev/null | xargs -r wc -l 2>/dev/null | awk '$2 != "total"' | sort -rn | awk 'NR==1{print $1+0}')
