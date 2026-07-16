@@ -6,3 +6,6 @@ audits/
 # local editor/vault noise — never commit
 .obsidian/
 GAD/
+
+# Morning brief — local-only operator surface (charter amendment 2026-07-15)
+BRIEF.md

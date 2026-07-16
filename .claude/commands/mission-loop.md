@@ -86,6 +86,19 @@ loop translates the reply to protocol.
 STATUS aggregates the whole night instead: merge-ready branches, all parked decisions
 (one-tap each), metrics deltas, anomalies, and every standing-ruling execution.
 
+**Brief delivery (charter amendment, operator-ratified 2026-07-15):** every run that
+emits a brief (1) WRITES it to `BRIEF.md` at the repo root — gitignored, local-only,
+overwritten each run; the fixed, predictable file and the source of truth — and then
+(2) ATTEMPTS Slack delivery via the Slack MCP: DM to the operator — the concrete user
+id is recorded ONLY in the local-private charter (never in tracked files; resolve live
+via the Slack user search if absent); if a `#gadd-brief` channel exists at send time,
+prefer it. Slack delivery is
+best-effort: headless/scheduled runs may lack the interactively-authenticated MCP; on
+any failure the file remains the source of truth and the failure is noted in the NEXT
+brief. Truth-only caveat: messages sent from the operator's own Slack session do not
+push-notify their phone (Slack suppresses own-message notifications) — the DM/channel
+is a persistent visible surface, not a pager.
+
 ## Standing safety rules (inherit; restated because the loop runs unattended)
 
 - Approval matrix and separation of powers apply in full: no self-enrollment in allowlists, no grader edits, no test-weakening, adversaries isolated per the bench contract.
