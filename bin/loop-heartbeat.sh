@@ -65,6 +65,20 @@ set -uo pipefail
 MODE="${1:-check}"
 SESSION_ARG="${2:-${GADD_HEARTBEAT_SESSION:-}}"
 
+# Status mode's output contract is "stdout carries ONLY a JSON object" and every
+# JSON emission below goes through jq. With jq absent, those emissions used to
+# vanish (command-not-found on stderr, EMPTY stdout) while the script still exited
+# 0 — a fail-open a JSON-consuming caller reads as silent success (run #16 bench
+# note n2). Fail closed instead, with a hand-printed static JSON object (no jq
+# needed) so the stdout contract survives the degrade. Check mode is untouched:
+# without jq its tier-1 read yields nothing and the chain degrades to the labeled
+# bytes tier, which needs no jq.
+if [ "$MODE" = "status" ] && ! command -v jq >/dev/null 2>&1; then
+  printf '{"measured":false,"error":"jq unavailable - status mode requires jq for JSON output; fail-closed (exit 2, never 0)","method":"unavailable"}\n'
+  echo "[loop-heartbeat] CANNOT MEASURE (status mode) — jq not found on PATH — fail-closed: exit 2, never 0." >&2
+  exit 2
+fi
+
 CEILING="${GADD_CTX_CEILING_TOKENS:-400000}"
 
 # Validate the ceiling right where it's read (mirrors the -gt 0 2>/dev/null guard
@@ -132,13 +146,14 @@ if [ -n "$SOURCE_FILE" ] && [ -f "$SOURCE_FILE" ] && [ -r "$SOURCE_FILE" ]; then
   # Tier 1: tokens — most recent assistant turn's usage fields.
   LAST_USAGE="$(jq -R -c 'fromjson? | select(.type=="assistant" and (.message.usage != null)) | .message.usage' "$SOURCE_FILE" 2>/dev/null | tail -n 1)"
   if [ -n "$LAST_USAGE" ]; then
-    # A usage OBJECT whose three context fields are all null/absent carries no
-    # measurement — coercing it to 0 via `// 0` would fabricate a tokens-method
-    # "context 0" reading (fail-open; run #14 bench note). Emit nothing in that
-    # case so the chain falls through to the labeled bytes tier. Explicit numeric
-    # zeros remain a measured zero; string-typed fields still error out of the
-    # addition and degrade to bytes (disclosed run #14 behavior, unchanged).
-    COMPUTED="$(jq -n --argjson u "$LAST_USAGE" 'if ($u.input_tokens == null and $u.cache_creation_input_tokens == null and $u.cache_read_input_tokens == null) then empty else (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) end' 2>/dev/null || true)"
+    # A usage OBJECT is a valid tier-1 measurement ONLY if all three context
+    # fields are numbers. Anything else (null/absent — run #14 note; boolean
+    # false, which `// 0` coerces to a fabricated 0 — run #16 bench note n1;
+    # strings; mixed types) carries no measurement: emit nothing so the chain
+    # falls through to the labeled bytes tier. Explicit numeric zeros remain a
+    # measured zero. Every real Claude Code transcript carries all three as
+    # numbers, so this narrows tier-1 strictly toward honesty.
+    COMPUTED="$(jq -n --argjson u "$LAST_USAGE" 'if ([$u.input_tokens, $u.cache_creation_input_tokens, $u.cache_read_input_tokens] | all(type == "number")) then (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) else empty end' 2>/dev/null || true)"
     if [ -n "$COMPUTED" ] && [ "$COMPUTED" -ge 0 ] 2>/dev/null; then
       METHOD="tokens"
       VALUE="$COMPUTED"

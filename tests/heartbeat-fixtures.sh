@@ -248,18 +248,81 @@ assert_eq "(10d) string-typed usage fields -> bytes method (disclosed degrade, p
   "bytes" "$(printf '%s' "$status10d" | jq -r '.method')"
 
 # ===================================================================================
-# Mutation demo 3 (scenario-10 counterpart): strip the all-null guard in a scratch
-# copy -> the mutant must reproduce the fabricated "tokens/0/OK" reading on the
-# scenario-10b over-ceiling transcript, proving the guard is load-bearing.
+# Scenario 11: boolean-typed usage fields (run #16 bench note n1, closed run #17) —
+# jq's `// 0` coerces boolean false exactly like null, so a usage object of falses
+# bypassed the run-16 null-only guard and fabricated a tokens-method 0. Tier 1 now
+# accepts a usage object ONLY when all three context fields are numbers.
+# ===================================================================================
+f11="$WORK/s11.jsonl"
+printf '{"type":"assistant","message":{"usage":{"input_tokens":false,"cache_creation_input_tokens":false,"cache_read_input_tokens":false,"output_tokens":false}}}\n' > "$f11"
+
+# 11a: all-false usage fields -> bytes method, never tokens.
+status11a="$("$SCRIPT" status "$f11")"
+assert_eq "(11a) boolean-false usage fields -> falls back to bytes method (never tokens)" \
+  "bytes" "$(printf '%s' "$status11a" | jq -r '.method')"
+assert_eq "(11a) boolean-false usage never reports the fabricated value 0" "false" \
+  "$(test "$(printf '%s' "$status11a" | jq -r '.value')" = "0" && echo true || echo false)"
+
+# 11b: rejecting direction — boolean-false usage on an over-ceiling-sized transcript
+# must exit 3 via the bytes estimate (pre-fix: fabricated "OK 0/400000" exit 0).
+f11b="$WORK/s11b.jsonl"
+cp "$f11" "$f11b"
+yes '{"type":"user","message":{"content":"padding line to inflate the byte-size estimate"}}' \
+  | head -n 20000 >> "$f11b"   # ~1.74MB, bytes-tier estimate ~435k > the 400000 default ceiling
+"$SCRIPT" check "$f11b" >/dev/null 2>&1; rc11b=$?
+assert_eq "(11b) boolean-false usage on an over-ceiling-sized transcript -> exit 3 (was fail-open 0)" \
+  "3" "$rc11b"
+
+# 11c: mixed-type fields (one string among numbers) -> bytes, preserving the run-14
+# disclosed degrade under the stricter all-numbers rule.
+f11c="$WORK/s11c.jsonl"
+printf '{"type":"assistant","message":{"usage":{"input_tokens":"123","cache_creation_input_tokens":456,"cache_read_input_tokens":789,"output_tokens":10}}}\n' > "$f11c"
+status11c="$("$SCRIPT" status "$f11c")"
+assert_eq "(11c) mixed string/number usage fields -> bytes method (never a partial tokens sum)" \
+  "bytes" "$(printf '%s' "$status11c" | jq -r '.method')"
+
+# ===================================================================================
+# Scenario 12: status mode with jq absent (run #16 bench note n2, closed run #17) —
+# status mode's JSON emissions all require jq; with jq off PATH the script used to
+# print NOTHING to stdout and exit 0 (silent success to a JSON-consuming caller).
+# Must fail closed: exit 2 with a hand-printed static JSON object. Check mode's
+# jq-less degrade to the bytes tier is pinned unchanged. Assertions use grep, not
+# jq, since the probe's whole point is a jq-less world.
+# ===================================================================================
+NOJQ="$WORK/nojq-bin"
+mkdir -p "$NOJQ"
+for b in bash sh env git sed ls head tail wc tr awk grep cat mktemp dirname basename; do
+  p="$(command -v "$b" 2>/dev/null)" && ln -s "$p" "$NOJQ/$b"
+done
+
+# 12a: status mode, no jq -> exit 2, stdout is a non-empty JSON object with
+# measured:false (pre-fix: empty stdout, exit 0).
+out12a="$(PATH="$NOJQ" "$SCRIPT" status "$f1" 2>/dev/null)"; rc12a=$?
+assert_eq "(12a) status mode without jq -> exit 2 (was fail-open 0 with empty stdout)" "2" "$rc12a"
+assert_eq "(12a) status mode without jq still emits measured:false JSON on stdout" "true" \
+  "$(printf '%s' "$out12a" | grep -q '"measured":false' && echo true || echo false)"
+
+# 12b: check mode, no jq -> tier 1 yields nothing, bytes tier (no jq needed) still
+# measures; small transcript stays under ceiling, exit 0, method labeled bytes.
+out12b="$(PATH="$NOJQ" "$SCRIPT" check "$f1" 2>/dev/null)"; rc12b=$?
+assert_eq "(12b) check mode without jq -> still measures via bytes tier (exit 0)" "0" "$rc12b"
+assert_eq "(12b) check mode without jq labels the bytes method" "true" \
+  "$(printf '%s' "$out12b" | grep -q 'via bytes method' && echo true || echo false)"
+
+# ===================================================================================
+# Mutation demo 3 (scenario-10 counterpart): force the tier-1 validity condition to
+# literal-true in a scratch copy -> the mutant must reproduce the fabricated
+# "tokens/0/OK" reading on the scenario-10b over-ceiling transcript, proving the
+# guard is load-bearing.
 # ===================================================================================
 echo ""
 echo "--- mutation demo: all-null usage guard stripped ---"
 mutant3="$WORK/loop-heartbeat.mutant3.sh"
 cp "$SCRIPT" "$mutant3"
 chmod +x "$mutant3"
-# Replace the null-guard condition with a literal-false so the mutant treats an
-# all-null usage object as a valid tokens measurement again.
-sed -i.bak 's/if (\$u.input_tokens == null and \$u.cache_creation_input_tokens == null and \$u.cache_read_input_tokens == null) then empty else /if false then empty else /' "$mutant3"
+# Replace the validity condition with a literal-true so the mutant treats any
+# usage object as a valid tokens measurement again (nulls coerce to 0 via // 0).
+sed -i.bak 's/| all(type == "number")) then/| true) then/' "$mutant3"
 rm -f "$mutant3.bak"
 mutant3_out="$("$mutant3" check "$f10b" 2>/dev/null)"
 mutant3_rc=$?
@@ -269,6 +332,30 @@ elif [ "$mutant3_rc" = "3" ]; then
   echo "mutation demo INCONCLUSIVE: mutant still exited 3 — sed substitution did not take effect as expected."
 else
   echo "mutation demo CONFIRMED (partial): mutant behavior diverged from the guarded script (exit $mutant3_rc, output: $mutant3_out)."
+fi
+
+# ===================================================================================
+# Mutation demo 4 (scenario-11 counterpart): weaken the all-numbers rule back to the
+# run-16 null-only guard (`all(. != null)`) in a scratch copy -> the mutant must
+# reproduce the fabricated tokens-0 "OK" on the scenario-11b boolean-false
+# over-ceiling transcript — a live proof that the previous guard was insufficient
+# for the boolean sibling class and the stricter rule is load-bearing.
+# ===================================================================================
+echo ""
+echo "--- mutation demo: all-numbers rule weakened to the run-16 null-only guard ---"
+mutant4="$WORK/loop-heartbeat.mutant4.sh"
+cp "$SCRIPT" "$mutant4"
+chmod +x "$mutant4"
+sed -i.bak 's/| all(type == "number")) then/| all(. != null)) then/' "$mutant4"
+rm -f "$mutant4.bak"
+mutant4_out="$("$mutant4" check "$f11b" 2>/dev/null)"
+mutant4_rc=$?
+if [ "$mutant4_rc" = "0" ] && printf '%s' "$mutant4_out" | grep -q 'context 0/'; then
+  echo "mutation demo CONFIRMED: null-only-guard mutant reports OK context 0 (exit 0) on the boolean-false over-ceiling transcript — the all-numbers rule is load-bearing."
+elif [ "$mutant4_rc" = "3" ]; then
+  echo "mutation demo INCONCLUSIVE: mutant still exited 3 — sed substitution did not take effect as expected."
+else
+  echo "mutation demo CONFIRMED (partial): mutant behavior diverged from the guarded script (exit $mutant4_rc, output: $mutant4_out)."
 fi
 
 # ===================================================================================
