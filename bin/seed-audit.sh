@@ -27,10 +27,11 @@ if [ ! -f "$ROOT_CLAUDE" ]; then
 fi
 
 # --- (a) every routed folder (+ adapters/lv, adapters/cc) has a CLAUDE.md ---
-# Folder-column links look like "[name/](name/)" in the routing table: both
-# the link text and the target end in "/", which the Loads column (ending in
-# "CLAUDE.md)") never does.
-folders="$(grep -oE '\[[^]]+/\]\([^)]+/\)' "$ROOT_CLAUDE" | sed -E 's/.*\(([^)]+)\)/\1/' | sort -u || true)"
+# Folder-column links look like "[name/](name/)" or "[name](name/)" in the
+# routing table — keyed off the link TARGET ending in "/" (e.g. "spec/"),
+# not the link text, so a row whose text omits the trailing slash is still
+# picked up. The Loads column (ending in "CLAUDE.md)") never matches this.
+folders="$(grep -oE '\[[^]]+\]\([^)]+/\)' "$ROOT_CLAUDE" | sed -E 's/.*\(([^)]+)\)/\1/' | sort -u || true)"
 if [ -z "$folders" ]; then
   echo "FAIL: no routed folders found in $ROOT_CLAUDE routing table"
   status=1

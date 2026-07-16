@@ -39,6 +39,11 @@ highlighted in the morning brief and reviewed at the next retro.
    blocklist pattern, engine canary) AND a commit-metadata scan (authors, committers;
    taggers on tag pushes) over the same range — the range mode runs both. Any hit blocks
    the push. Dirty unpushed history is scrubbed-and-rebuilt, never pushed dirty.
+3. **(ratified 2026-07-15)** Adversaries and all read-only reviewer roles NEVER run
+   `git checkout`, `git switch`, `git reset`, or any command that mutates the shared
+   working tree or moves HEAD — historical states are inspected via `git show
+   <ref>:<path>` / `git diff` only. (Origin: an adversary switched the session's branch
+   mid-bench; restored, ruling written same day.)
 
 ## Tier-3 / Major — {{HUMAN}} approves, every time
 

@@ -29,6 +29,12 @@ the code: one context has one set of blind spots, and role-played "adversaries" 
 correlated verdicts. The bench's value is uncorrelated failure detection, not persona
 prose. (Origin of this rule: `docs/rejection-ledger.md`.)
 
+Adversaries are READ-ONLY in the strong sense (ratified 2026-07-15): never `git
+checkout`/`switch`/`reset` or anything that mutates the shared working tree or moves
+HEAD — inspect other revisions via `git show <ref>:<path>` / `git diff` only. Mutation
+tests an adversary needs (e.g. TEST_HONESTY) must restore the exact prior state and
+verify it with `git status` before returning.
+
 ## Model mapping (Phase 0 orchestration)
 
 Structural checks — mostly diff-vs-artifact comparison — run on the cheap tier; judgment

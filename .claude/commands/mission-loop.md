@@ -23,14 +23,26 @@
 5. **Measure:** objective-function delta this iteration. An iteration that moved no metric and unblocked nothing counts as a no-progress strike.
 6. **Check parks and stop conditions** (below). Item parked → pick the next unblocked item. No global stop fired → next iteration.
 
-## Item-level parks — the loop continues (night-mode amendment, ratified 2026-07-14)
+## Packet routing — the Ratifier (constitutional amendment, operator-ratified 2026-07-15)
 
-When an item hits one of these, the ITEM parks — moved to BLOCKED/AWAITING in the lantern
-with its decision packet prepared (state, options, recommendation, one-tap phrasing) — and
-the loop continues with the next unblocked ratified item:
+The operator is no longer the per-packet relay. When an item reaches a decision packet —
+arbitration at repair-cap, ratification-needed, merge/push candidates, anything the old
+rules parked — the Director routes the packet to the **Ratifier** (`gadd-ratifier`
+agent): an isolated context, separate from every executor, that applies standing rulings
+SR-1..SR-8 and returns APPROVE / APPROVE-CONDITIONAL / REJECT / PARK-TIER-3. Verdicts
+are logged in the lantern with the receipts they named. Standing rulings in the approval
+matrix still pre-approve their patterns directly (log, don't ask).
 
-1. **TIER-3 REACHED** — the item's next action is a merge to main, deploy, publish/send, spend, schema migration on real data, or anything under the approval matrix's human tier. Prepare everything up to the button, then park. *Autonomy produces candidates; humans accept.*
-2. **RATIFICATION NEEDED** — the item requires a spec change, a grader/gate/baseline change (always Major, never self-served), or exceeds ratified plan scope — UNLESS a STANDING RULING in the approval matrix pre-approves the specific pattern: then execute, log the ruling's use in the lantern, and report it in STATUS. Audit after, not gate before.
+**Only the charter's tier-3 list parks for the operator** (exhaustive; per the Ratifier
+charter in [.claude/agents/gadd-ratifier.md](../agents/gadd-ratifier.md)):
+(1) public-history rewrites / force-push to a public ref; (2) identity and pseudonym
+changes; (3) secrets and credentials; (4) money; (5) launch and anything facing external
+humans (publication, outreach, external-facing products); (6) grader / gate / baseline
+modifications beyond monotonic ratchet-tightening; (7) charter changes after its initial
+ratified installation. Everything else flows through the Ratifier without the operator.
+
+Parked tier-3 items still follow night mode: the ITEM parks with its packet prepared,
+and the loop continues with the next unblocked ratified item.
 
 ## Stop conditions — the ONLY legitimate global exits
 

@@ -38,6 +38,13 @@ if ! git grep -q -i -E -- "$CANARY" -- bin/residue-check.sh 2>/dev/null; then
   echo "SELF-TEST FAILED: grep engine did not match the canary pattern — a guard that cannot run never passes silently." >&2
   exit 2
 fi
+# System-grep engine canary: the metadata/message scans below pipe through the
+# system `grep`, not `git grep` — a separate binary that must be proven to
+# understand the same word-boundary idiom before its results are trusted.
+if ! printf '%s\n' "GADD_RESIDUE_CANARY_TOKEN" | grep -q -i -E -- "$CANARY"; then
+  echo "SELF-TEST FAILED: system grep did not match the canary pattern — a guard that cannot run never passes silently." >&2
+  exit 2
+fi
 
 if [ ! -f "$BLOCKLIST" ]; then
   echo "notice: $BLOCKLIST absent — residue check skipped (local-only file; create it before a release audit)"
@@ -67,11 +74,35 @@ while IFS= read -r p; do
     # R5 (ratified 2026-07-15): commit METADATA scan — blob scans structurally miss
     # authors/committers (a personal email survived every content scan until the
     # metadata pass). Taggers: check pushed tags with `git cat-file -p <tag>`.
-    if meta_hits="$(git log "$RANGE" --format='%h author:%an <%ae> committer:%cn <%ce>' | grep -i -E -- "$p")"; then
+    # git log output is captured FIRST with an explicit error check, then grepped —
+    # piping `git log | grep` directly conflates "git log failed" with "grep found
+    # nothing" (both non-zero), silently swallowing the former.
+    if ! meta_log="$(git log "$RANGE" --format='%h author:%an <%ae> committer:%cn <%ce>' 2>&1)"; then
+      echo "ERROR: git log (metadata) failed for range '$RANGE': $meta_log" >&2
+      status=1
+    elif meta_hits="$(printf '%s\n' "$meta_log" | grep -i -E -- "$p")"; then
       echo "RESIDUE (metadata): pattern '$p' matches commit author/committer fields:"
       printf '%s\n' "$meta_hits"
       status=1
     fi
+    # Commit MESSAGE scan (subject + body, %s %b): a residue term can appear only
+    # in a commit message, never in the diff or in author/committer fields — a
+    # gap the metadata pass above does not cover. Scanned per-commit (not batched
+    # like the metadata pass) because a multi-line body can't be safely flattened
+    # into the single-line-per-commit format the metadata scan relies on to
+    # attribute a hit to its commit.
+    for c in $commits; do
+      if ! msg_log="$(git log -1 --format='%h %s %b' "$c" 2>&1)"; then
+        echo "ERROR: git log (message) failed for commit $c: $msg_log" >&2
+        status=1
+        continue
+      fi
+      if printf '%s\n' "$msg_log" | grep -q -i -E -- "$p"; then
+        echo "RESIDUE (message): pattern '$p' matches commit $c message:"
+        printf '%s\n' "$msg_log" | grep -i -E -- "$p"
+        status=1
+      fi
+    done
   else
     if hits="$(git grep -n -i -E -- "$p" 2>/dev/null)"; then
       echo "RESIDUE: pattern '$p' matches tracked files:"
@@ -82,7 +113,7 @@ while IFS= read -r p; do
 done <<< "$patterns"
 if [ "$status" -eq 0 ]; then
   if [ -n "$RANGE" ]; then
-    echo "residue check: clean ($(printf '%s\n' "$patterns" | wc -l | tr -d ' ') patterns × $(printf '%s' "$commits" | grep -c . || true) commits in '$RANGE', 0 hits; engine canary passed)"
+    echo "residue check: clean ($(printf '%s\n' "$patterns" | wc -l | tr -d ' ') patterns × $(printf '%s' "$commits" | grep -c . || true) commits in '$RANGE', 0 hits across tree+metadata+message; engine canaries passed)"
   else
     echo "residue check: clean ($(printf '%s\n' "$patterns" | wc -l | tr -d ' ') patterns, 0 hits; engine canary passed)"
   fi
