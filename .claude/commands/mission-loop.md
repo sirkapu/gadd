@@ -98,8 +98,9 @@ emits a brief (1) WRITES it to `BRIEF.md` at the repo root — gitignored, local
 overwritten each run; the fixed, predictable file and the source of truth — and then
 (2) ATTEMPTS Slack delivery via the Slack MCP: DM to the operator — the concrete user
 id is recorded ONLY in the local-private charter (never in tracked files; resolve live
-via the Slack user search if absent); if a `#gadd-brief` channel exists at send time,
-prefer it. Slack delivery is
+via the Slack user search if absent); if a dedicated brief channel exists in this
+deployment's Slack workspace at send time (gadd's own convention names it
+`#gadd-brief`; a deployment may wire its own name), prefer it. Slack delivery is
 best-effort: headless/scheduled runs may lack the interactively-authenticated MCP; on
 any failure the file remains the source of truth and the failure is noted in the NEXT
 brief. Truth-only caveat: messages sent from the operator's own Slack session do not

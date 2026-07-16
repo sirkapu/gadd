@@ -9,5 +9,6 @@
   [commands/objective-audit.md](commands/objective-audit.md) all ship via
   [bin/install.sh](bin/install.sh) (`bin/install.sh --adapter=cc` at the
   repo root). `/mission-loop`'s own dependencies (`gadd-ratifier` agent,
-  `bin/loop-lock.sh`, `bin/schedule-loop.sh`) ship alongside it so the
-  command is self-contained in the target repo.
+  `bin/loop-lock.sh`, `bin/loop-heartbeat.sh`, `bin/schedule-loop.sh`,
+  `bin/mission-loop.plist.template`) ship alongside it so the command is
+  self-contained in the target repo.

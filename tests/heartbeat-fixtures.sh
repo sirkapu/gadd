@@ -200,6 +200,78 @@ assert_eq "(9f) valid raised override prints OK line" "true" \
   "$(printf '%s' "$out9f" | grep -q '\] OK ' && echo true || echo false)"
 
 # ===================================================================================
+# Scenario 10: null-usage fabricated-zero (run #14 bench note, closed run #16) — a
+# usage OBJECT whose token fields are all null/absent must never be accepted as a
+# tokens-method measurement of 0 ("OK 0/ceiling" on a transcript that carries no
+# measurement). It must fall through to the bytes tier, labeled. Both directions
+# pinned, plus the measured-zero and string-usage boundaries.
+# ===================================================================================
+f10="$WORK/s10.jsonl"
+printf '{"type":"assistant","message":{"usage":{"input_tokens":null,"cache_creation_input_tokens":null,"cache_read_input_tokens":null,"output_tokens":null}}}\n' > "$f10"
+
+# 10a: all-null usage fields -> bytes method, never tokens/0.
+status10a="$("$SCRIPT" status "$f10")"
+assert_eq "(10a) all-null usage fields -> falls back to bytes method (never tokens)" \
+  "bytes" "$(printf '%s' "$status10a" | jq -r '.method')"
+assert_eq "(10a) all-null usage never reports the fabricated value 0" "false" \
+  "$(test "$(printf '%s' "$status10a" | jq -r '.value')" = "0" && echo true || echo false)"
+
+# 10b: rejecting direction — same all-null usage line embedded in a transcript whose
+# BYTE SIZE puts the bytes-tier estimate over the default 400000 ceiling
+# (> 400000 * 4 bytes). Pre-fix behavior was exit 0 "OK 0/400000"; the conversion
+# silent-accept -> loud-reject is the pinned delta.
+f10b="$WORK/s10b.jsonl"
+cp "$f10" "$f10b"
+yes '{"type":"user","message":{"content":"padding line to inflate the byte-size estimate"}}' \
+  | head -n 20000 >> "$f10b"   # ~1.74MB, bytes-tier estimate ~435k > the 400000 default ceiling
+"$SCRIPT" check "$f10b" >/dev/null 2>&1; rc10b=$?
+assert_eq "(10b) all-null usage on an over-ceiling-sized transcript -> exit 3 (was fail-open 0)" \
+  "3" "$rc10b"
+
+# 10c: boundary — EXPLICIT numeric zeros are a measured zero, not a null: tokens
+# method, value 0, exit 0 must be preserved (regression guard, the other direction).
+f10c="$WORK/s10c.jsonl"
+printf '{"type":"assistant","message":{"usage":{"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0}}}\n' > "$f10c"
+status10c="$("$SCRIPT" status "$f10c")"
+assert_eq "(10c) explicit numeric-zero usage stays tokens method (measured zero)" \
+  "tokens" "$(printf '%s' "$status10c" | jq -r '.method')"
+assert_eq "(10c) explicit numeric-zero usage value == 0" "0" \
+  "$(printf '%s' "$status10c" | jq -r '.value')"
+
+# 10d: string-typed usage fields (disclosed by-design run #14: jq addition errors,
+# tier 1 yields nothing) -> bytes tier; pinned so the degrade stays labeled, never
+# becomes a crash or a fabricated tokens reading.
+f10d="$WORK/s10d.jsonl"
+printf '{"type":"assistant","message":{"usage":{"input_tokens":"123","cache_creation_input_tokens":"456","cache_read_input_tokens":"789","output_tokens":"10"}}}\n' > "$f10d"
+status10d="$("$SCRIPT" status "$f10d")"
+assert_eq "(10d) string-typed usage fields -> bytes method (disclosed degrade, pinned)" \
+  "bytes" "$(printf '%s' "$status10d" | jq -r '.method')"
+
+# ===================================================================================
+# Mutation demo 3 (scenario-10 counterpart): strip the all-null guard in a scratch
+# copy -> the mutant must reproduce the fabricated "tokens/0/OK" reading on the
+# scenario-10b over-ceiling transcript, proving the guard is load-bearing.
+# ===================================================================================
+echo ""
+echo "--- mutation demo: all-null usage guard stripped ---"
+mutant3="$WORK/loop-heartbeat.mutant3.sh"
+cp "$SCRIPT" "$mutant3"
+chmod +x "$mutant3"
+# Replace the null-guard condition with a literal-false so the mutant treats an
+# all-null usage object as a valid tokens measurement again.
+sed -i.bak 's/if (\$u.input_tokens == null and \$u.cache_creation_input_tokens == null and \$u.cache_read_input_tokens == null) then empty else /if false then empty else /' "$mutant3"
+rm -f "$mutant3.bak"
+mutant3_out="$("$mutant3" check "$f10b" 2>/dev/null)"
+mutant3_rc=$?
+if [ "$mutant3_rc" = "0" ] && printf '%s' "$mutant3_out" | grep -q 'context 0/'; then
+  echo "mutation demo CONFIRMED: null-guard-stripped mutant reports OK context 0 (exit 0) on the over-ceiling-sized transcript — the real script's guard is load-bearing."
+elif [ "$mutant3_rc" = "3" ]; then
+  echo "mutation demo INCONCLUSIVE: mutant still exited 3 — sed substitution did not take effect as expected."
+else
+  echo "mutation demo CONFIRMED (partial): mutant behavior diverged from the guarded script (exit $mutant3_rc, output: $mutant3_out)."
+fi
+
+# ===================================================================================
 # Mutation demo: strip the ceiling comparison in a scratch copy of the script ->
 # the fixture that depends on exit 3 (scenario 2) must fail against the mutant.
 # This is a live demonstration, not a pass/fail assertion of this suite itself.

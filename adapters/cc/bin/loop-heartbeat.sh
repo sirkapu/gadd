@@ -132,7 +132,13 @@ if [ -n "$SOURCE_FILE" ] && [ -f "$SOURCE_FILE" ] && [ -r "$SOURCE_FILE" ]; then
   # Tier 1: tokens — most recent assistant turn's usage fields.
   LAST_USAGE="$(jq -R -c 'fromjson? | select(.type=="assistant" and (.message.usage != null)) | .message.usage' "$SOURCE_FILE" 2>/dev/null | tail -n 1)"
   if [ -n "$LAST_USAGE" ]; then
-    COMPUTED="$(jq -n --argjson u "$LAST_USAGE" '(($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0))' 2>/dev/null || true)"
+    # A usage OBJECT whose three context fields are all null/absent carries no
+    # measurement — coercing it to 0 via `// 0` would fabricate a tokens-method
+    # "context 0" reading (fail-open; run #14 bench note). Emit nothing in that
+    # case so the chain falls through to the labeled bytes tier. Explicit numeric
+    # zeros remain a measured zero; string-typed fields still error out of the
+    # addition and degrade to bytes (disclosed run #14 behavior, unchanged).
+    COMPUTED="$(jq -n --argjson u "$LAST_USAGE" 'if ($u.input_tokens == null and $u.cache_creation_input_tokens == null and $u.cache_read_input_tokens == null) then empty else (($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0) + ($u.cache_read_input_tokens // 0)) end' 2>/dev/null || true)"
     if [ -n "$COMPUTED" ] && [ "$COMPUTED" -ge 0 ] 2>/dev/null; then
       METHOD="tokens"
       VALUE="$COMPUTED"
