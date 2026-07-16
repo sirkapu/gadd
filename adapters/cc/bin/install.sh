@@ -14,16 +14,17 @@ cp "$SRC/../../spec/schemas/"*.json .gadd/schemas/
 # mission-loop dependencies (mandatory step-0 lock + optional launchd scheduling) —
 # copied so /mission-loop's references resolve in the target repo, not just in gadd itself.
 cp "$SRC/bin/loop-lock.sh" bin/loop-lock.sh
+cp "$SRC/bin/loop-heartbeat.sh" bin/loop-heartbeat.sh
 cp "$SRC/bin/schedule-loop.sh" bin/schedule-loop.sh
 cp "$SRC/bin/mission-loop.plist.template" bin/mission-loop.plist.template
-chmod +x bin/loop-lock.sh bin/schedule-loop.sh
+chmod +x bin/loop-lock.sh bin/loop-heartbeat.sh bin/schedule-loop.sh
 
 echo "gadd-cc installed:"
 echo "  agents/    -> .claude/agents/   (executor, mechanic, fixer, 5x RED_TEAM adversary, ratifier)"
 echo "  commands/  -> .claude/commands/ (/gadd-loop, /mission-loop, /objective-audit)"
 echo "  RED_TEAM/  -> RED_TEAM/         (adversary bench definitions — graders, only if absent)"
 echo "  spec/schemas -> .gadd/schemas/  (verdict + baseline schemas)"
-echo "  bin/loop-lock.sh, bin/schedule-loop.sh, bin/mission-loop.plist.template (mission-loop's own dependencies)"
+echo "  bin/loop-lock.sh, bin/loop-heartbeat.sh, bin/schedule-loop.sh, bin/mission-loop.plist.template (mission-loop's own dependencies)"
 echo
 echo "Next:"
 echo '  git add -A && git commit -m "chore: install gadd-cc"'
