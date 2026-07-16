@@ -70,11 +70,13 @@ SESSION_ARG="${2:-${GADD_HEARTBEAT_SESSION:-}}"
 # vanish (command-not-found on stderr, EMPTY stdout) while the script still exited
 # 0 — a fail-open a JSON-consuming caller reads as silent success (run #16 bench
 # note n2). Fail closed instead, with a hand-printed static JSON object (no jq
-# needed) so the stdout contract survives the degrade. Check mode is untouched:
-# without jq its tier-1 read yields nothing and the chain degrades to the labeled
-# bytes tier, which needs no jq.
-if [ "$MODE" = "status" ] && ! command -v jq >/dev/null 2>&1; then
-  printf '{"measured":false,"error":"jq unavailable - status mode requires jq for JSON output; fail-closed (exit 2, never 0)","method":"unavailable"}\n'
+# needed) so the stdout contract survives the degrade. The probe tests jq
+# FUNCTIONALITY, not PATH presence — a present-but-broken or non-executable jq
+# reproduced the same empty-stdout exit 0 (DATA_INTEGRITY blocker, run #17
+# round 1). Check mode is untouched: without working jq its tier-1 read yields
+# nothing and the chain degrades to the labeled bytes tier, which needs no jq.
+if [ "$MODE" = "status" ] && ! printf '{}' | jq -e . >/dev/null 2>&1; then
+  printf '{"measured":false,"error":"jq unavailable or non-functional - status mode requires jq for JSON output; fail-closed (exit 2, never 0)","method":"unavailable"}\n'
   echo "[loop-heartbeat] CANNOT MEASURE (status mode) — jq not found on PATH — fail-closed: exit 2, never 0." >&2
   exit 2
 fi

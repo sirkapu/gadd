@@ -309,6 +309,35 @@ assert_eq "(12b) check mode without jq -> still measures via bytes tier (exit 0)
 assert_eq "(12b) check mode without jq labels the bytes method" "true" \
   "$(printf '%s' "$out12b" | grep -q 'via bytes method' && echo true || echo false)"
 
+# 12c: BROKEN jq on PATH (executable, exits 1 — version/lib-incompat class;
+# DATA_INTEGRITY blocker, run #17 round 1: a presence-only guard passed this and
+# reproduced the empty-stdout exit 0) -> status must fail closed exactly like
+# absent jq: exit 2, static measured:false JSON on stdout.
+BROKENJQ="$WORK/brokenjq-bin"
+mkdir -p "$BROKENJQ"
+for b in bash sh env git sed ls head tail wc tr awk grep cat mktemp dirname basename; do
+  p="$(command -v "$b" 2>/dev/null)" && ln -s "$p" "$BROKENJQ/$b"
+done
+printf '#!/bin/sh\nexit 1\n' > "$BROKENJQ/jq"
+chmod +x "$BROKENJQ/jq"
+out12c="$(PATH="$BROKENJQ" "$SCRIPT" status "$f1" 2>/dev/null)"; rc12c=$?
+assert_eq "(12c) status mode with BROKEN jq on PATH -> exit 2 (functionality probe, not presence)" "2" "$rc12c"
+assert_eq "(12c) broken-jq status still emits measured:false JSON on stdout" "true" \
+  "$(printf '%s' "$out12c" | grep -q '"measured":false' && echo true || echo false)"
+
+# 12d: NON-EXECUTABLE jq file on PATH (second bypass class from the same blocker)
+# -> same fail-closed behavior.
+NOEXECJQ="$WORK/noexecjq-bin"
+mkdir -p "$NOEXECJQ"
+for b in bash sh env git sed ls head tail wc tr awk grep cat mktemp dirname basename; do
+  p="$(command -v "$b" 2>/dev/null)" && ln -s "$p" "$NOEXECJQ/$b"
+done
+printf '#!/bin/sh\nexit 0\n' > "$NOEXECJQ/jq"   # deliberately NOT chmod +x
+out12d="$(PATH="$NOEXECJQ" "$SCRIPT" status "$f1" 2>/dev/null)"; rc12d=$?
+assert_eq "(12d) status mode with non-executable jq on PATH -> exit 2" "2" "$rc12d"
+assert_eq "(12d) non-executable-jq status still emits measured:false JSON on stdout" "true" \
+  "$(printf '%s' "$out12d" | grep -q '"measured":false' && echo true || echo false)"
+
 # ===================================================================================
 # Mutation demo 3 (scenario-10 counterpart): force the tier-1 validity condition to
 # literal-true in a scratch copy -> the mutant must reproduce the fabricated
