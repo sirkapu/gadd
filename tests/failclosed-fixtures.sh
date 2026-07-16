@@ -399,6 +399,62 @@ assert_ndjson_no_finding "(4b) lane-violation base fence empty (working-tree fen
   "$OUT/s04empty.findings.ndjson" "lane-violation"
 
 # ===================================================================================
+# Scenario 5 (hardening H — PR-flow readiness, run #19): base canonicalization +
+# ancestry assertion. (5a) a base that RESOLVES but is not an ancestor of HEAD
+# (squash-merge / history-rewrite shape) -> verdict FAIL, nonzero exit, synthetic
+# CRITICAL gate-integrity finding naming the squash/merge-commit-flow refusal.
+# (5b) short-SHA base on a real ancestor -> still PASS, and the emitted verdict's
+# base_sha is the CANONICAL full SHA (never the short spelling). (5c) full-SHA
+# ancestor base -> byte-identical behavior to pre-H (prior-verdict preservation
+# pin: PASS, base_sha echoed unchanged).
+# ===================================================================================
+r5="$WORK/s05"; mk_git_repo "$r5"; write_baseline "$r5"
+install_run_all "$r5/.gadd/checks"
+cat > "$r5/.gadd/checks/01-noop.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+chmod +x "$r5/.gadd/checks/01-noop.sh"
+( cd "$r5" && git add -A && git commit -q -m checks )
+
+# Build a resolvable NON-ANCESTOR commit: an orphan branch commit exists in the
+# object store but shares no history with HEAD — exactly the dangling shape a
+# squashed-away accept commit leaves behind.
+# (`git checkout -` does not resolve after an orphan checkout — return via the
+# captured branch name instead.)
+( cd "$r5" && MAINBR="$(git rev-parse --abbrev-ref HEAD)" \
+    && git checkout -q --orphan squashghost && git commit -q -m ghost --allow-empty \
+    && git rev-parse HEAD > "$WORK/s05.ghost" && git checkout -q "$MAINBR" )
+GHOST_BASE="$(cat "$WORK/s05.ghost")"
+
+rc="$(run_run_all s05ghost "$r5" "$GHOST_BASE")"
+assert_nonzero "(5a) resolvable non-ancestor GADD_BASE -> nonzero exit" "$rc"
+assert_eq "(5a) non-ancestor base -> verdict FAIL" "FAIL" \
+  "$(jq -r '.verdict' "$OUT/s05ghost.stdout" 2>/dev/null)"
+assert_verdict_finding "(5a) non-ancestor base -> CRITICAL gate-integrity naming squash/merge-commit-flow" \
+  "$OUT/s05ghost.stdout" "gate-integrity" "CRITICAL" "squash-merged"
+
+# 5b: short-SHA spelling of a REAL ancestor (HEAD's parent) -> PASS, verdict
+# base_sha is the full canonical SHA.
+PARENT_FULL="$(cd "$r5" && git rev-parse HEAD~1)"
+PARENT_SHORT="$(cd "$r5" && git rev-parse --short=7 HEAD~1)"
+rc="$(run_run_all s05short "$r5" "$PARENT_SHORT")"
+assert_zero "(5b) short-SHA ancestor base -> exit 0" "$rc"
+assert_eq "(5b) short-SHA ancestor base -> verdict PASS" "PASS" \
+  "$(jq -r '.verdict' "$OUT/s05short.stdout" 2>/dev/null)"
+assert_eq "(5b) verdict base_sha is the CANONICAL full SHA, not the short spelling" \
+  "$PARENT_FULL" "$(jq -r '.base_sha' "$OUT/s05short.stdout" 2>/dev/null)"
+
+# 5c: full-SHA ancestor base -> PASS with base_sha echoed unchanged (preservation
+# pin — pre-H behavior byte-stable for the canonical-input case).
+rc="$(run_run_all s05full "$r5" "$PARENT_FULL")"
+assert_zero "(5c) full-SHA ancestor base -> exit 0" "$rc"
+assert_eq "(5c) full-SHA ancestor base -> base_sha unchanged" \
+  "$PARENT_FULL" "$(jq -r '.base_sha' "$OUT/s05full.stdout" 2>/dev/null)"
+assert_verdict_no_finding "(5c) full-SHA ancestor base -> no gate-integrity finding" \
+  "$OUT/s05full.stdout" "gate-integrity"
+
+# ===================================================================================
 echo ""
 echo "=================================================================="
 echo "$NPASS/$N PASS"

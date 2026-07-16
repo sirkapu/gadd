@@ -28,12 +28,31 @@ export GADD_METRICS_FILE="$RUNDIR/gadd-metrics.json"
 # changed" reads as a silent PASS. Validate the base BEFORE running any
 # check; on failure, refuse to run checks against an unknown base and report
 # loudly instead of silently.
-if ! git rev-parse --verify "${GADD_BASE}^{commit}" >/dev/null 2>&1; then
+#
+# Fail-closed hardening H (PR-flow readiness, run #19, operator-approved):
+# (1) canonicalize the base — rev-parse normalizes refs/short SHAs to the one
+# full commit SHA, so every check and the emitted verdict diff against the
+# same pinned commit, never a mutable ref spelling; (2) assert ancestry — a
+# base that resolves but is NOT an ancestor of HEAD means the history was
+# rewritten or the PR was squash-merged (squash replaces the accepted change
+# commit, leaving accepted_sha dangling or divergent); diffing against a
+# non-ancestor produces garbage ranges that can read as empty. Refuse loudly:
+# gadd requires merge-commit flow (see the adoption note). Any merge-base
+# error (e.g. unresolvable HEAD) is treated as non-ancestry — fail closed.
+CANON_BASE="$(git rev-parse --verify "${GADD_BASE}^{commit}" 2>/dev/null)" || CANON_BASE=""
+if [ -z "$CANON_BASE" ]; then
   echo "::error::GADD_BASE '$GADD_BASE' does not resolve to a commit — refusing to run checks against an unknown base" >&2
   jq -cn --arg c "gate-integrity" \
     --arg m "GADD_BASE '$GADD_BASE' does not resolve to a commit — refusing to run checks against an unknown base" \
     '{check:$c, severity:"CRITICAL", message:$m, paths:[]}' >> "$GADD_FINDINGS"
+elif ! git merge-base --is-ancestor "$CANON_BASE" "$GADD_HEAD" 2>/dev/null; then
+  echo "::error::GADD_BASE '$GADD_BASE' is not an ancestor of HEAD '$GADD_HEAD' — history was rewritten or the PR was squash-merged; gadd requires merge-commit flow — refusing to diff against a non-ancestor base" >&2
+  jq -cn --arg c "gate-integrity" \
+    --arg m "GADD_BASE '$GADD_BASE' is not an ancestor of HEAD '$GADD_HEAD' — history was rewritten or the PR was squash-merged; gadd requires merge-commit flow — refusing to diff against a non-ancestor base" \
+    '{check:$c, severity:"CRITICAL", message:$m, paths:[]}' >> "$GADD_FINDINGS"
 else
+  GADD_BASE="$CANON_BASE"
+  export GADD_BASE
   # 01–09 ship with gadd; deployments may add their own NN-*.sh extensions (e.g.
   # 90-deployment-ratchet.sh) — they run in lexical order and report via lib/common.sh.
   #
