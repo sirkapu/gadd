@@ -10,7 +10,7 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **2** — MEASURED 2026-07-16: (1) first deployment live on upstream gadd (origin tip `6b25ef5`); (2) gadd itself governed — dogfood merge `8a3f679` pushed and `gadd-ratchet` ran on origin, completed success (run 29474552876; `gadd-redteam` chained, success/keyless-degrade). Same criterion as deployment 1: the ratchet workflow runs on its pushes |
-| Active mission branch | `mission/run-17-heartbeat-siblings` MERGE-READY at `ddbc4df` (Ratifier APPROVE-CONDITIONAL — second item-6 L-class ruling, 6 receipts, 5 STOPs; merge at the operator's button) + `e6cf994` Trivial docs commit on top DISCLOSED as post-verdict (docs-only; verdict STOP-2 re-runs receipts at the actual merge commit either way). run-16 chain DONE 2026-07-16 (operator-approved full chain): main pushed `253d381..2a7ec6a`, run-16-heartbeat MERGED --no-ff `2aeae9f` + pushed, all merge receipts green, origin ratchet+redteam success on `2aeae9f`. Prior: run-14-p1 MERGED+PUSHED 2026-07-17 (`65a9f91` on origin; operator-approved full chain; all 6 Ratifier receipts produced; pre-push hook gated PASS; the heartbeat is now LIVE in loop step 6). Prior: run-13-failclosed MERGED+PUSHED 2026-07-16 (`bb2b699`, operator-approved full chain; 5 reds closed on main). Prior: run-12-speed MERGED+PUSHED 2026-07-16 (`b74c389`, operator-approved; one-hunk union resolution in LANTERN.md disclosed, both sides byte-receipt). Prior: run-10-dogfood MERGED+PUSHED 2026-07-16 (`8a3f679`, operator-approved with re-verify condition honored; all 7 Ratifier receipts produced; pre-push hook fired live and gated the push PASS; origin ratchet ran, success). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
+| Active mission branch | `mission/run-19-prflow` MERGE-READY at `cd37bc0` (PR-flow items 1+4+5 + accept commit, one packet; Ratifier APPROVE-CONDITIONAL — THIRD item-6 L-class ruling, 6 receipts, 4 STOPs incl. no-squash fence; merge = operator's button). Local main also carries the unpushed run-18/19 lantern closes. Prior chains all LIVE on origin: run-17 merged `2fbb39d` (n1+n2 heartbeat), run-16 merged `2aeae9f`, receipts green throughout. Prior: run-14-p1 MERGED+PUSHED 2026-07-17 (`65a9f91` on origin; operator-approved full chain; all 6 Ratifier receipts produced; pre-push hook gated PASS; the heartbeat is now LIVE in loop step 6). Prior: run-13-failclosed MERGED+PUSHED 2026-07-16 (`bb2b699`, operator-approved full chain; 5 reds closed on main). Prior: run-12-speed MERGED+PUSHED 2026-07-16 (`b74c389`, operator-approved; one-hunk union resolution in LANTERN.md disclosed, both sides byte-receipt). Prior: run-10-dogfood MERGED+PUSHED 2026-07-16 (`8a3f679`, operator-approved with re-verify condition honored; all 7 Ratifier receipts produced; pre-push hook fired live and gated the push PASS; origin ratchet ran, success). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
 | Constitution | Ratifier-in-loop FULLY installed 2026-07-15 (operator: "go A, go B"): packets route to `gadd-ratifier` (isolated context, SR-1..**9**); only the charter's 7-item tier-3 list parks for the operator; item 7 at invariant wording. NAMING (operator-ratified 2026-07-17, item 7): "mesa-in-loop" branding RETIRED — the in-loop context is "the Ratifier" full stop; "Mesa" = operator-side counsel space ONLY; SR-9 added (in-loop products attributed to the Ratifier; mesa/operator attributions require verbatim-quotable text). ITEM-6 VERBATIM WRITE DONE (run #16, `53801cd`): V/L/O receipt-gated classes live in the charter, byte-exact from the run-15 brief (SHA-1 receipt `8005f17b`), quoting the run-16 dispatch; local-private canonical synced; FIRST L-CLASS EXERCISE same run (heartbeat fix — Ratifier classified, approved in-loop, merge still parked). Nightly schedule LIVE: launchd `com.gadd.mission-loop`, 02:17, night-mode park-and-continue; installer `bin/schedule-loop.sh` (placeholder-only template tracked). Morning brief = the operator's surface (English, ≤1 page, decisions-first) |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
@@ -25,7 +25,42 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
-- **mission-loop run #18 DECLARED (same session; operator dispatch: "approve merge —
+- **mission-loop run #19 DECLARED (same session; operator ruled on the PR-flow queue,
+  verbatim: "1. APPROVED — base_sha canonicalization + ancestry + explicit
+  squash-incompatibility error. Ratifier classifies under item-6 with receipts.
+  2. PENDING MY READ — quote the proposed CODEOWNERS text verbatim in your next
+  brief (or reply). I ratify governance text only after reading it. 3. APPROVED —
+  verifiable accept-signer replacing %ae. Ratifier classifies under item-6 with
+  receipts. 4. APPROVED — build the adoption note (Standard). 5. APPROVED — build
+  the PR-time advisory ratchet run, non-gating (Standard). Relaunch the loop.
+  Tier-3 merges remain my button as always.")** — CODEOWNERS text quoted verbatim
+  in the reply + brief per ruling 2. Run-19 plan by leverage: (1) item-1 gate
+  hardening first (full ceremony), then items 4+5 (Standard builds) as budget
+  allows; item-3 accept-signer DEFERRED to a design-first pass next run (grader
+  redesign deserves fresh-session ceremony, not end-of-session context — disclosed,
+  not silent). **CLOSE (same entry):** ITEMS 1+4+5 BUILT on `mission/run-19-prflow`
+  (`7b66d5a` hardening H + `aa0b9e3` advisory workflow + adoption note + `cd37bc0`
+  accept commit — one packet per item 6's own text). Hardening H: base
+  canonicalization + ancestry assertion, non-ancestor → loud CRITICAL squash-
+  incompat refusal; scenario-5 fixtures both-direction (red 4/4 pre-H; one fixture
+  bugfix disclosed: `git checkout -` after orphan checkout), failclosed 32/32,
+  prior 23 byte-stable, installed copy byte-identical `81c07fdb`, live gate PASS
+  post-accept (base `aa0b9e3` canonical). Advisory workflow byte-identical
+  `34fc0c93` both copies, ships via existing installer glob; adoption note
+  normative (merge-commit only, integration ≠ acceptance). BENCH: DI PASS r1 +
+  REGRESSION PASS r1, zero blockers (REGRESSION confirmed fleet 81/81, parity
+  40/40, installer end-to-end, shallow-clone false-negative unreachable from
+  shipped paths; DI confirmed canonicalization spelling-only, no red→green).
+  RATIFIER: APPROVE-CONDITIONAL — THIRD item-6 L-class ruling (canonicalization
+  nuance judged: verdict-field byte-delta on non-canonical spellings trips no
+  escape trigger, pinned by 5b), 6 receipts, 4 STOPs (no-squash fence; gate re-run
+  at merge HEAD). ITEM 2 (CODEOWNERS) still PENDING operator read — text quoted
+  verbatim in reply + brief. ITEM 3 accept-signer DEFERRED to design-first next
+  run. Anomalies: none — 3/3 subagent invocations clean; one own-fixture bug
+  caught by the pre-fix red run (the receipts discipline working on the Director).
+  SR-1 executions: 0 repairs (bench passed r1 both). Stopped: condition 1 (TIER-3
+  — merge at the operator's button) with condition 4 approaching (82% of ceiling
+  at close, measured). Heartbeat dogfooded throughout. (same session; operator dispatch: "approve merge —
   execute the run-17 chain per the Ratifier's receipts and STOPs. Then relaunch the
   loop for run #18. Also add to the standing queue if not already there: PR-flow
   readiness audit — verify gadd's acceptance chain works when merges to main happen
