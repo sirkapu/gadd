@@ -23,7 +23,8 @@
 # USAGE: bin/gadd-receipts.sh
 #   Outputs one JSON object to stdout. All commentary/progress goes to stderr.
 set -uo pipefail
-cd "$(git rev-parse --show-toplevel)"
+TOPLEVEL="$(git rev-parse --show-toplevel)" || { echo "FATAL: git rev-parse --show-toplevel failed — not inside a git repo? Refusing to run against an unknown tree." >&2; exit 1; }
+cd "$TOPLEVEL" || { echo "FATAL: cd to '$TOPLEVEL' failed — refusing to run against an unknown tree." >&2; exit 1; }
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -59,6 +60,13 @@ if [ -f "$GATE" ]; then
   gate_base="$(jq -r '.base_sha // empty' "$gate_out" 2>/dev/null || true)"
   if [ -n "$gate_verdict" ]; then
     gate_summary="verdict: $gate_verdict (${gate_sha:0:7} vs base ${gate_base:0:7})"
+    if [ "$gate_verdict" != "PASS" ]; then
+      # Cross-check: the parsed verdict is the ONLY signal that gets to declare
+      # green. A gate suite that exits 0 while its own verdict JSON says
+      # anything other than PASS is lying about its exit code — never trust
+      # the process exit alone; force the suite nonzero regardless of $gate_ec.
+      gate_ec=1
+    fi
   else
     # Gate ran but did not emit a parseable verdict JSON — never fabricate a
     # summary; report what actually happened and fail closed.
@@ -88,6 +96,18 @@ else
     if [ -z "$f_summary" ]; then
       f_summary="no PASS summary line found in output (exit $f_ec)"
       f_ec=1
+    else
+      # Cross-check: the exit code alone never gets to declare green. Parse
+      # N/M out of the summary line itself and require N == M — a harness
+      # that prints "0/40 PASS" (or any N < M) and exits 0 is lying about its
+      # exit code and must not fabricate green.
+      f_n="${f_summary%%/*}"
+      f_rest="${f_summary#*/}"
+      f_m="${f_rest%% *}"
+      if [ "$((10#$f_n))" -ne "$((10#$f_m))" ]; then
+        f_summary="$f_summary (parsed count mismatch: $f_n of $f_m passed — not all-green despite exit $f_ec)"
+        f_ec=1
+      fi
     fi
     record_suite "fixtures:$fname" "$f_ec" "$f_summary"
   done
@@ -101,10 +121,26 @@ if [ -f "$RESIDUE" ]; then
   r_out="$WORK/residue.stdout"
   bash "$RESIDUE" >"$r_out" 2>&1
   r_ec=$?
-  r_summary="$(grep -E '^residue check:' "$r_out" | tail -1)"
-  if [ -z "$r_summary" ]; then
+  # Parsed signal: a genuine clean verdict, or a legitimate degraded-skip
+  # notice (blocklist absent/empty) — both are honest exit-0 states per
+  # bin/residue-check.sh's own contract.
+  r_clean="$(grep -E '^residue check: clean' "$r_out" | tail -1)"
+  r_notice="$(grep -E '^notice:' "$r_out" | tail -1)"
+  if [ -n "$r_clean" ]; then
+    r_summary="$r_clean"
+  elif [ -n "$r_notice" ]; then
+    r_summary="$r_notice"
+  else
     r_summary="$(tail -1 "$r_out")"
     [ -z "$r_summary" ] && r_summary="(no output)"
+  fi
+  if [ "$r_ec" -eq 0 ] && [ -z "$r_clean" ] && [ -z "$r_notice" ]; then
+    # Cross-check: exit 0 alone never gets to declare green. If the process
+    # exited 0 but its own output contains neither a "clean" verdict nor a
+    # legitimate skip notice (e.g. a lying script that prints "RESIDUE: ..."
+    # hits and still exits 0), never trust the exit code — force nonzero.
+    r_ec=1
+    r_summary="exit 0 but no parseable clean/notice signal in output: $r_summary"
   fi
   record_suite "residue" "$r_ec" "$r_summary"
 else
