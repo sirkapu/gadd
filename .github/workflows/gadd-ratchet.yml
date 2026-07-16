@@ -1,0 +1,29 @@
+name: gadd-ratchet
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  ratchet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Run gadd check suite
+        id: suite
+        run: bash .gadd/checks/run-all.sh
+        continue-on-error: true
+      - name: Upload verdict
+        uses: actions/upload-artifact@v4
+        with:
+          name: gadd-verdict-${{ github.sha }}
+          path: gadd/verdicts/${{ github.sha }}.json
+      - name: Fail job on FAIL verdict (signal only — main is never blocked)
+        if: steps.suite.outcome == 'failure'
+        run: |
+          echo "Verdict FAIL — compile gadd/verdicts/${{ github.sha }}.json into a repair prompt (LV-REPAIR-TEMPLATE.md)."
+          exit 1

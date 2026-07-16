@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gadd verdict",
+  "type": "object",
+  "required": ["sha", "base_sha", "verdict", "findings"],
+  "properties": {
+    "sha": { "type": "string" },
+    "base_sha": { "type": "string" },
+    "verdict": { "enum": ["PASS", "FAIL"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["check", "severity", "message"],
+        "properties": {
+          "check": { "type": "string" },
+          "severity": { "enum": ["CRITICAL", "MAJOR", "MINOR"] },
+          "message": { "type": "string" },
+          "paths": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "metrics": { "type": "object" }
+  }
+}
