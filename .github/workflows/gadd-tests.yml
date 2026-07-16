@@ -1,0 +1,53 @@
+name: gadd-tests
+# SIGNAL ONLY — NEVER A MERGE GATE (main has no branch protection). Runs every
+# tests/*.sh fixture suite so a PR (including from forks, via the plain
+# pull_request event) that weakens or deletes a fixture shows a visible red
+# check. Deterministic complement to CODEOWNERS review over tests/ (run #21,
+# operator-promoted DX item): CODEOWNERS requires a human look at a tests/
+# diff; this independently re-runs the corpus so weakening is caught even if
+# review is skipped on a non-required check. Discovers suites via a glob
+# (tests/*.sh) so newly added suites run automatically with no workflow edit —
+# tests/CLAUDE.md is a .md file and is not matched by the glob.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run every tests/*.sh fixture suite (signal only — never a merge gate)
+        run: |
+          set -u
+          shopt -s nullglob
+          suites=(tests/*.sh)
+          if [ ${#suites[@]} -eq 0 ]; then
+            echo "No tests/*.sh suites found — nothing to run."
+            exit 0
+          fi
+          overall=0
+          declare -a results=()
+          for f in "${suites[@]}"; do
+            echo "::group::Running $f"
+            if bash "$f"; then
+              results+=("PASS  $f")
+            else
+              results+=("FAIL  $f")
+              overall=1
+            fi
+            echo "::endgroup::"
+          done
+          echo
+          echo "==================== tests/*.sh summary ===================="
+          for r in "${results[@]}"; do
+            echo "$r"
+          done
+          echo "=============================================================="
+          exit "$overall"
