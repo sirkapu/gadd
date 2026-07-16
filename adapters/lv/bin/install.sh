@@ -13,8 +13,32 @@ cp "$SRC/workflows/"gadd-*.yml .github/workflows/
 for t in AGENTS.md OWNERSHIP.md; do [ -f "$t" ] || cp "$SRC/templates/$t" "$t"; done
 cp "$SRC/templates/LV-REPAIR-TEMPLATE.md" gadd/ 2>/dev/null || true
 
-AGENTS_SHA=$(sha256sum AGENTS.md | awk '{print $1}')
 EMAIL="$(git config user.email || true)"
+
+# Accept-signer genesis (run #21, ratified design: accept-signer-design-v1.md,
+# migration step 5 — write allowed_signers BEFORE the baseline so a fresh
+# install's genesis baseline already anchors it, closing the fresh-install
+# legacy window). GADD_SIGNER_PUBKEY may be a full allowed_signers line
+# ("principal keytype base64...") or a bare "keytype base64" pair, in which
+# case EMAIL is prefixed as the principal.
+if [ -n "${GADD_SIGNER_PUBKEY:-}" ]; then
+  NF=$(printf '%s' "$GADD_SIGNER_PUBKEY" | awk '{print NF}')
+  if [ "$NF" -le 2 ]; then
+    [ -z "$EMAIL" ] && { echo "GADD_SIGNER_PUBKEY given in bare 'keytype base64' form but git user.email is unset — cannot derive a principal"; exit 1; }
+    printf '%s %s\n' "$EMAIL" "$GADD_SIGNER_PUBKEY" > gadd/allowed_signers
+  else
+    printf '%s\n' "$GADD_SIGNER_PUBKEY" > gadd/allowed_signers
+  fi
+  echo "Signer enrolled: gadd/allowed_signers written — genesis baseline will anchor it."
+else
+  echo "WARNING: no GADD_SIGNER_PUBKEY given — accept-commit authorship is spoofable via git"
+  echo "  author email (%ae) until a signer is enrolled. Enroll any time:"
+  echo '    git config gpg.format ssh && git config user.signingkey <path-to-pub>'
+  echo '    printf '"'"'%s %s\n'"'"' "$(git config user.email)" "$(cat <path-to-pub>)" > gadd/allowed_signers'
+  echo '    (then commit it as a SIGNED "gadd: accept" genesis commit — see step 2 below)'
+fi
+
+AGENTS_SHA=$(sha256sum AGENTS.md | awk '{print $1}')
 ACCEPT_AUTHORS="[]"; [ -n "$EMAIL" ] && ACCEPT_AUTHORS="[\"$EMAIL\"]"
 cat > gadd/BASELINE.json << JSON
 {
@@ -29,6 +53,10 @@ echo "Next — commit the install, then ACCEPT it, then push BOTH commits togeth
 echo "(otherwise the first ratchet run flags the installation itself as a lane violation):"
 echo '  1) git add -A && git commit -m "chore: install gadd-lv"'
 echo '  2) jq --arg sha "$(git rev-parse HEAD)" '"'"'.accepted_sha=$sha'"'"' gadd/BASELINE.json > t && mv t gadd/BASELINE.json'
-echo '     git commit -am "gadd: accept $(git rev-parse --short HEAD)"'
+if [ -n "${GADD_SIGNER_PUBKEY:-}" ]; then
+  echo '     git commit -S -am "gadd: accept $(git rev-parse --short HEAD)"   # SIGN this — a signer is enrolled'
+else
+  echo '     git commit -am "gadd: accept $(git rev-parse --short HEAD)"'
+fi
 echo '  3) git push'
 echo "  4) paste AGENTS.md into Lovable Knowledge, then build."

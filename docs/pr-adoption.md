@@ -49,12 +49,46 @@ merge commit (`fetch-depth: 0` — full history is required for `accepted_sha`
 resolution and the ancestry assertion) and uploads the verdict as an artifact.
 Advisory only; see the rule above.
 
+## Accept-signer verification runs in CI automatically (run #21, operator answer c)
+
+`gadd-ratchet` and `gadd-advisory` both execute the full deterministic suite
+via `bash .gadd/checks/run-all.sh` (see the workflow files) — this includes
+check 02's accept-signer verification (SSH commit signing via
+`git verify-commit` against the base-pinned `gadd/allowed_signers`;
+[audits/accept-signer-design-v1.md](../audits/accept-signer-design-v1.md)).
+No new CI wiring was needed: the check reads `gadd/allowed_signers` from
+`GADD_BASE` via `git show`, and that file holds public keys only — nothing
+secret — so ordinary `fetch-depth: 0` checkout access is sufficient; no
+repository secret is configured or required for signature verification itself.
+Consequences for adopters:
+
+- **Enrollment is a one-time, per-deployment step**, not a CI configuration
+  step: run `adapters/lv/bin/install.sh` with `GADD_SIGNER_PUBKEY` set (fresh
+  installs), or commit `gadd/allowed_signers` as a signed `gadd: accept`
+  genesis commit (existing deployments) — see the design doc's migration
+  steps 2 and 5. Once enrolled, every subsequent CI run of `run-all.sh`
+  enforces it automatically, on GitHub's runners exactly as it does locally.
+- **Runner git version**: `ubuntu-latest` ships a git well above the 2.34
+  floor `git verify-commit`'s SSH-signature plumbing requires; check 02
+  fails closed (CRITICAL) if it ever detects an older git rather than
+  silently skipping enforcement, so a stale runner image would surface
+  loudly, not silently.
+- **Merge-commit-only still applies** (the rule above) — the signer check
+  verifies the `gadd: accept` commit itself, which only exists as a real
+  commit in history under merge-commit flow; a squashed/rebased PR still hits
+  the ancestry refusal (hardening H) before signature verification is ever
+  reached.
+
 ## Known open residuals under PR flow (tracked in the lantern; honesty, not fine print)
 
 - The `accept_authors` check reads git author metadata, which an external
-  contributor can spoof; a verifiable accept-signer is operator-approved and
-  in the build queue. Until it lands, accept commits from untrusted external
-  PRs deserve human eyes.
+  contributor can spoof; run #21 shipped a verifiable accept-signer
+  (`git verify-commit` against a base-pinned `gadd/allowed_signers` — see
+  [audits/accept-signer-design-v1.md](../audits/accept-signer-design-v1.md))
+  as a second, stronger factor. It is opt-in per deployment (enroll via the
+  installer's `GADD_SIGNER_PUBKEY` or a signed genesis commit); until a given
+  deployment enrolls, accept commits from untrusted external PRs on THAT
+  deployment still deserve human eyes.
 - Commits pushed to a PR branch after approval are graded on the next ratchet
   run, not at merge time (post-approval TOCTOU window).
 - CODEOWNERS protection for grader/tier-3 surfaces is pending operator

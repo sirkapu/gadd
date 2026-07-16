@@ -17,6 +17,7 @@ ai-specs/**
 scripts/**
 .gadd/**
 gadd/BASELINE.json
+gadd/allowed_signers
 .github/workflows/gadd-*.yml
 ```
 
