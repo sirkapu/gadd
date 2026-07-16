@@ -23,11 +23,25 @@ below (append-only) and in git.
 
 ## Log (append-only, newest first)
 
-- **2026-07-16 · mission-loop run #12 DECLARED (lock acquired):** objective RATIFIED ✓,
-  tree clean on main `f9f47d2`. Picks per roadmap priority: (1) APEX-audit triage
-  (read-only, informs the spec) → (2) fail-open gate hardening incl. GADD_BASE
-  silent-pass (MAJOR red; grader change → Ratifier judges monotonicity) → (3) speed
-  items P3/P4 if budget allows.
+- **2026-07-16 · run #12 · APEX TRIAGE DONE + hardening packet PARKED TIER-3 (item-6
+  two-reading):** every audit claim verified against main `77a9914`. CLOSED: bare-
+  checkout worst case (schemas installed, hook fail-closed), checks-01/07 vacuousness
+  (Repair A), RED_TEAM/** grader-edit vector (governed lane). NARROWED: TOCTOU vector
+  (lane CRITICAL catches non-self-neutering edits; same-push self-modify residual
+  open), %ae accept-spoof (allowlist live from base; spoofable-metadata residual
+  open), malformed-line wipe (only via shared-/tmp corruption). OPEN-NEW (gold, now
+  logged red): CRASH-DEMOTE fail-open — run-all.sh:20 discards check exit codes, a
+  crashed check's detections vanish, verdict stays PASS (violates "a gate that cannot
+  run never passes silently"); crafted-filename evasion of checks 03/05/06/08 (F-03);
+  RLS parser gaps (F-04); verdict-planting via ungoverned gitignored gadd/verdicts/
+  (vector-d residual); fixed world-shared /tmp state files (F-12). HARDENING ITEM
+  SPEC'd (A–G: rev-parse base · exit-code ledger · per-line NDJSON validation ·
+  mktemp substrate · lane base-read + OWNERSHIP self-governed · both-direction
+  fixtures · self-reinstall+accept) → RATIFIER: PARK-TIER-3, merits verified sound,
+  parked ONLY on charter item-6 jurisdiction ("monotonic ratchet-tightening": does
+  the carve-out cover grader-LOGIC-that-only-tightens, or baseline-VALUEs only?) —
+  7 receipts + 4 STOPs pre-named, dispatch-ready on one operator "approve". Item 6
+  flagged (again) for invariant-grade rewrite. Loop continues per night mode.
 
 - **2026-07-16 · DOGFOOD MERGED — gadd governs itself; coverage proxy 1→2 MEASURED:**
   operator approved the merge with a re-verify condition (main had advanced since the
