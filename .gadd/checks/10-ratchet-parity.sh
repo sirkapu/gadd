@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # 10-ratchet-parity.sh — upstream ratchet metric parity (docs/metric-parity.md).
 # Graceful adoption: with no gadd/BASELINE.json `parity.gating` block, this check
-# only measures (merges into /tmp/gadd-metrics.json) and never fails the gate.
+# only measures (merges into the shared per-run metrics file) and never fails the gate.
 # Once `parity.gating` is configured, any measured regression beyond baseline, or any
 # CONFIGURED metric that comes back unmeasurable (tool missing, node missing), is a
 # MAJOR finding — a gate that cannot run never passes silently.
 source "$(dirname "$0")/lib/common.sh"
 
 ENGINE="$(dirname "$0")/lib/parity-metrics.mjs"
-METRICS_FILE="${GADD_METRICS_FILE:-/tmp/gadd-metrics.json}"
+# Fail-closed hardening D: default falls back to a private mktemp file when
+# run standalone (no run-all.sh threading GADD_METRICS_FILE in) — never a
+# fixed shared /tmp path that two concurrent runs could collide on.
+METRICS_FILE="${GADD_METRICS_FILE:-$(mktemp)}"
 GATING_METRICS="eslint_errors eslint_warnings tsc_errors any_count eslint_disables oversized_files duplicate_windows"
 
 gating_configured="false"
