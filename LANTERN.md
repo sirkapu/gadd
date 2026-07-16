@@ -10,7 +10,7 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **1** — operator-verified 2026-07-14: first deployment live on upstream gadd (its origin tip `6b25ef5`; the gadd-ratchet workflow runs on its pushes) |
-| Active mission branch | none — run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
+| Active mission branch | `mission/run-10-dogfood` (3 commits, UNMERGED — parked tier-3: TEST_HONESTY blockers resolve only via the parked grader Repair A; merge packet ready the moment the operator rules). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
 | Constitution | Ratifier-in-loop FULLY installed 2026-07-15 (operator: "go A, go B"): packets route to `gadd-ratifier` (isolated context, SR-1..8); only the charter's 7-item tier-3 list parks for the operator; item 7 at invariant wording (changes AFTER initial ratified installation). Nightly schedule LIVE: launchd `com.gadd.mission-loop`, 02:17, night-mode park-and-continue; installer `bin/schedule-loop.sh` (placeholder-only template tracked). Morning brief = the operator's surface (English, ≤1 page, decisions-first) |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
@@ -19,14 +19,37 @@ below (append-only) and in git.
 | RED_TEAM | Bench split into `RED_TEAM/` — one definition file per adversary (role, attack surface, pass criteria, output contract) + `gate-matrix.md`. Gate runners dispatch each adversary as its OWN isolated invocation, in parallel (cc: five `gadd-rt-*` subagents; lv: five independent API calls). Adversaries never see each other's verdicts. Models: structural (CONTRACT_FIDELITY, TEST_HONESTY) → cheap tier (haiku); judgment (SECURITY, DATA_INTEGRITY, REGRESSION) → strong tier (opus) |
 | Protocol invariants | VERDICT + max 3 blockers per adversary · re-run only failed adversaries on the new diff · 2-round cap (spec inv. 6) · Architect arbitrates at the cap |
 | Graders | `RED_TEAM/**` is grader territory — executors and the Fixer never edit it |
-| Roadmap next | Phase 3 DONE 2026-07-15 (cc installer + shipped commands, run #9). Seed self-application DONE (run #7). QUEUED: phase 4 remnants — dogfood gadd-on-gadd (blocking CI/hooks), sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · retro items: approval-matrix↔charter tier-3 seam harmonization (REGRESSION note, run #9) · later: `gadd-accept` bot, Cursor/Replit adapters |
+| Roadmap next | Dogfood gadd-on-gadd EXECUTED run #10 (branch parked tier-3 on grader Repair A — operator decision pending). QUEUED: sandbox→`tests/`, test-hardening notes (aggregation_failed class, MINOR tally, tsx ceiling, positive tool-metric tests), R3 watchdog automation in dispatch plumbing · run-10 deferrals (all OPEN reds, Ratifier receipt 5): hook HEAD-vs-pushed-ref coupling (MINOR), redteam `.txt` verdicts uncovered by `*.json` ignore (MINOR), GADD_BASE silent-pass in shipped checks (MAJOR — a garbage base ref makes every check swallow git errors and PASS vacuously; executor-demonstrated), OWNERSHIP.md not self-governed (MINOR), stale OWNERSHIP prose line re lane list (Trivial doc fix) · retro items: approval-matrix↔charter tier-3 seam · SR-8 flag: "disclosure-addition vs monotonic-tightening" boundary needs invariant wording · later: `gadd-accept` bot, Cursor/Replit adapters |
 
 ## Log (append-only, newest first)
 
-- **2026-07-15 · mission-loop run #10 DECLARED (lock acquired, bootstrap step 0):**
-  objective RATIFIED ✓, plan = phase 4 remnants (roadmap row). First pick: dogfood
-  gadd-on-gadd — highest leverage by objective-function trace (moves the coverage
-  proxy: gadd itself becomes a governed repo generating verdict data).
+- **2026-07-15 · run #10 CLOSED — dogfood EXECUTED, parked tier-3 on one grader ruling:**
+  phase-4 dogfood declared Major (spec §6 overrides the audit plan's Standard label —
+  gate/baseline installation; tier floors, R2). Executor installed the lv suite on gadd
+  itself, branch `mission/run-10-dogfood` (`ac82f3a` install + `8c376c9` accept +
+  `fa61214` Repair B): measured baseline `{skipped_tests:0, max_file_loc:0}` (no `src/`
+  — measured, not defaulted), OWNERSHIP lanes = grader territory, fail-closed
+  `.githooks/pre-push` (deterministic gate only, local core.hooksPath — inert on main
+  until merge since main lacks `.githooks/`), two-commit accept dance, workflows
+  signal-only per invariant 3. Gate PASS post-accept · fleet 81/81 · parity 40/40 ·
+  residue clean. FULL BENCH 4/5 round 1: SECURITY/DATA_INTEGRITY/CONTRACT_FIDELITY/
+  REGRESSION PASS (DI probed the zero-baseline ratchet live: 0→1 skipped fired MAJOR;
+  CF verified byte-identity of all 25 installed files) · TEST_HONESTY FAIL, 2 blockers:
+  checks 01+07 silently vacuous on a no-`src/` repo (no `available:false` disclosure à
+  la check 10). Repair = shipped-grader edit → routed to Ratifier. RATIFIER: Repair A
+  (disclose inapplicability in `adapters/lv/checks/{01,07}`) **PARK-TIER-3** under SR-7
+  — "never adjust a check because it breaks"; not the monotonic carve-out since
+  deployment behavior is provably unchanged, blast radius = 2 live deployments;
+  operator must rule. Repair B (govern `gadd/BASELINE.json`) APPROVE-CONDITIONAL —
+  executed by Fixer, all 4 receipts held: diff = OWNERSHIP.md only; scenario A3
+  (non-allowlisted `gadd: accept` author) now FAILS CRITICAL — the dead accept_authors
+  enforcement REGRESSION demonstrated is wired live; legit accept `8c376c9` unaffected;
+  full suites green. Deferrals accepted-with-disclosure, logged red in roadmap row
+  (receipt 5; kept out of ESCAPED.jsonl to keep its escaped-regression schema honest —
+  disclosed reading). Standing-ruling executions: none (the one repair ran under
+  explicit Ratifier approval, not SR-1 pre-approval). Anomalies: none — 8/8 subagent
+  invocations clean. Stopped: context threshold; item parks per night mode. YOUR MOVE
+  is the Repair-A ruling — approve/reject in plain language and the loop executes.
 
 - **2026-07-15 · run #9 (operator-attended) — phase 3 SHIPPED (`263934e`):** lock
   acquired per new bootstrap step 0 (this run's own guard). Trivial: exit-4 fail-closed
