@@ -10,7 +10,7 @@ below (append-only) and in git.
 |---|---|
 | Version | v0.2 + v0.3 phase 1 CLOSED (2026-07-14, incl. the human push step) — next: /mission-loop on phases 1b + 2 |
 | Coverage proxy | **2** — MEASURED 2026-07-16: (1) first deployment live on upstream gadd (origin tip `6b25ef5`); (2) gadd itself governed — dogfood merge `8a3f679` pushed and `gadd-ratchet` ran on origin, completed success (run 29474552876; `gadd-redteam` chained, success/keyless-degrade). Same criterion as deployment 1: the ratchet workflow runs on its pushes |
-| Active mission branch | `mission/run-13-failclosed` (2 commits, tip `c54ef70`, MERGE-READY — fail-closed hardening A–G, FULL BENCH 5/5 ROUND 1, Ratifier APPROVE-CONDITIONAL w/ 6 merge receipts; merge vetoed by the harness layer — "approve hardening" covered dispatch, not merge → operator's button). Prior: run-12-speed MERGED+PUSHED 2026-07-16 (`b74c389`, operator-approved; one-hunk union resolution in LANTERN.md disclosed, both sides byte-receipt). Prior: run-10-dogfood MERGED+PUSHED 2026-07-16 (`8a3f679`, operator-approved with re-verify condition honored; all 7 Ratifier receipts produced; pre-push hook fired live and gated the push PASS; origin ratchet ran, success). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
+| Active mission branch | `mission/run-14-p1` (3 commits, tip `74dd9b0`, MERGE-READY — P1 heartbeat, bench 3/3 after one SR-1 round, Ratifier APPROVE-CONDITIONAL w/ 6 receipts; merge vetoed per consent grammar → operator's button). Prior: run-13-failclosed MERGED+PUSHED 2026-07-16 (`bb2b699`, operator-approved full chain; 5 reds closed on main). Prior: run-12-speed MERGED+PUSHED 2026-07-16 (`b74c389`, operator-approved; one-hunk union resolution in LANTERN.md disclosed, both sides byte-receipt). Prior: run-10-dogfood MERGED+PUSHED 2026-07-16 (`8a3f679`, operator-approved with re-verify condition honored; all 7 Ratifier receipts produced; pre-push hook fired live and gated the push PASS; origin ratchet ran, success). Prior: run-7 merged to main, pushed (wave "self-governing gadd": R5 wired · seed self-application bench-clean · Ratifier installed). Prior: PUBLIC HISTORY REWRITTEN from the root 2026-07-15 (double residue scrub + identity normalization) — every pre-rewrite SHA in log entries below is a stale pointer, disclosed not rewritten |
 | Constitution | Ratifier-in-loop FULLY installed 2026-07-15 (operator: "go A, go B"): packets route to `gadd-ratifier` (isolated context, SR-1..8); only the charter's 7-item tier-3 list parks for the operator; item 7 at invariant wording (changes AFTER initial ratified installation). Nightly schedule LIVE: launchd `com.gadd.mission-loop`, 02:17, night-mode park-and-continue; installer `bin/schedule-loop.sh` (placeholder-only template tracked). Morning brief = the operator's surface (English, ≤1 page, decisions-first) |
 | North Star | **FIRST MEASURED VALUE 2026-07-15: escaped_rate = 0 over 9 accepted pushes** — fleet of 2 clean repos, 17 verdicts admitted with ZERO anomalies across all 7 reason classes, 30 findings caught pre-acceptance (14 CRITICAL). Ledger caveat CLOSED 2026-07-15: `gadd/ESCAPED.jsonl` live on both governed repos' origins — the next measurement's zero is a measured zero |
 | Packet rule | PERMANENT (2026-07-15): YOUR MOVE never contains terminal commands — packets end in "reply approve and I execute"; operator may reply in plain language (any language, incl. Spanish); the loop translates to protocol |
@@ -24,6 +24,36 @@ below (append-only) and in git.
 ## Log (append-only, newest first)
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
+
+- **2026-07-16/17 · run #14 CLOSED — merge chain landed, P1 built + benched, mesa
+  reviewed the item-6 draft; session hit its OWN new ceiling:** the authorized full
+  chain executed — run-13 hardening MERGED+PUSHED (`bb2b699`, hook-gated PASS, 6
+  receipts) closing 5 reds (GADD_BASE silent-pass MAJOR, crash-demote, malformed-line
+  wipe, /tmp substrate, OWNERSHIP fence spoof). RESIDUE GUARD CAUGHT the Director:
+  my run-13 roadmap edit wrote a real deployment name into LANTERN.md — the shipped
+  `bin/residue-check.sh` fired on the merge tree (`sharpods` pattern), I anonymized to
+  the neutral register (`b128daa`) and re-pushed clean. The public-history-rewrite
+  decision for that one intermediate commit is PARKED TIER-3 (item 1) — options in the
+  brief; the standing rule held (public entries use the anonymous register). P1 heartbeat
+  BUILT (`mission/run-14-p1`, `74dd9b0`): deterministic transcript-size context meter
+  per the operator's design ruling, wired into loop step 6, ceiling 400k=40%/1M.
+  Bench 3/3 after one SR-1 round: TH PASS r1; DI FAIL r1 (unvalidated ceiling env →
+  fail-open "OK 112500%") → fixed → DI PASS r2 (break battery dead); REGRESSION FAIL
+  r1 (cc installer didn't ship the script → exit 127 in deployments) → fixed via
+  byte-identical dependency-closure copy → REGRESSION PASS r2. Ratifier
+  APPROVE-CONDITIONAL, 6 receipts; merge parked at the button (consent grammar).
+  LIVE PROOF the instrument works: it measured THIS dispatch session at 365,913 tokens
+  = 91.5% of ceiling — P1 flagged its own session for hand-off, which is exactly why
+  this run closes here (stop condition 3, now MECHANICAL). MESA REVIEW of the charter
+  item-6 rewrite: SOUND-WITH-AMENDMENTS, 6 fixes (whole-corpus prior-verdict
+  preservation closes a paired-loosening smuggle; operator-owned corpus; O-claim
+  narrowed per SR-4; Ratifier-owns-classification; "lateral" pinned; accept-commit
+  folded in) — amended draft in the brief for ratification. SR-1 executions: 1.
+  Anomalies: the residue self-catch (above; a real guard firing on the Director — the
+  system working); 3 merge vetoes honored (consent grammar); 15/15 subagent
+  invocations clean. QUEUED from run-14: mission-loop.md two-copy reconciliation ·
+  adapters/cc/CLAUDE.md stale dep list · heartbeat null-usage→0 + string-usage→bytes
+  notes · SPEED AUDIT v2 (P1 now live-ready) — all deferred to the next (fresh) session.
 
 - **2026-07-16 · run #13 CLOSED — five operator rulings executed; hardening bench-green
   5/5 round 1, merge at the button:** (declaration folded into this close — the tree
