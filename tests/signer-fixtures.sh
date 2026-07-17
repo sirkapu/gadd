@@ -40,7 +40,7 @@
 #     fail-closed CRITICAL when the base file exists but does not parse.
 #     S14 covers it.
 #
-# S15-S17 added in RUN-24 (DI wrong-TYPE base guard, operator-ratified queue
+# S15-S18 added in RUN-24 (DI wrong-TYPE base guard, operator-ratified queue
 # item, run-21 bench note): S14's parse-only guard (`jq -e .`) passed VALID
 # JSON that was the WRONG TYPE — a top-level array/string/number, or an
 # object whose .accept_authors was present but not an array of strings — and
@@ -50,7 +50,10 @@
 # violation) rather than a parallel path. S15 covers a top-level-array base;
 # S16 covers a wrong-type .accept_authors (string); S17 guards the UNCHANGED
 # path (.accept_authors absent) so the fix stays monotonic — no existing red
-# flips green.
+# flips green. S18 (REPAIR ROUND 1, TEST_HONESTY blocker) covers the
+# array-MEMBER type check: a mixed-type .accept_authors array (a valid string
+# alongside a non-string member) — S16 alone left the code's `all` check
+# mutable to `any` without any fixture catching it.
 #
 # Scenarios (S1-S10, see run-21 mission brief for the full spec):
 #   S1  enrolled + signed + allowlisted accept -> no findings (PASS)
@@ -721,6 +724,29 @@ assert_ndjson_no_finding_sev "(S17) RUN-24 guard: .accept_authors ABSENT -> no w
   "$OUT/s17.findings.ndjson" "lane-violation" "CRITICAL"
 assert_ndjson_finding "(S17) pre-existing legacy nudge still fires unchanged (accept_authors not set, no signer)" \
   "$OUT/s17.findings.ndjson" "lane-violation" "MAJOR" "accept authorship spoofable"
+
+# ===================================================================================
+# S18 (RUN-24 REPAIR ROUND 1, TEST_HONESTY blocker): S15-S17 never exercised
+# the array-MEMBER type check — the code validates
+# `[.accept_authors[] | type == "string"] | all`, but S16 only covers
+# .accept_authors being a string (whole-field wrong type). An array
+# CONTAINING a non-string member (e.g. a legit email alongside a stray
+# number) is caught by the code yet was uncovered by any fixture — a
+# mutation of `all` to `any` would have passed the whole suite. .accept_authors
+# is a mixed-type array with one valid string member and one non-string
+# member -> same CRITICAL fail-closed treatment as S15/S16.
+# ===================================================================================
+r18="$WORK/s18"
+mk_signer_repo "$r18" '["valid@example.com", 123]' 1
+BASE18="$(cd "$r18" && git rev-parse HEAD)"
+bump_baseline "$r18" "s18head"
+HEAD18="$(accept_commit "$r18" "gadd: accept s18 mixed-type-authors-array" "accept@test.local" "")"
+rc="$(run_check02 s18 "$r18" "$BASE18" "$HEAD18")"
+assert_zero "(S18) exit 0" "$rc"
+assert_ndjson_finding "(S18) RUN-24 REPAIR: .accept_authors array contains a non-string member -> CRITICAL fail-closed" \
+  "$OUT/s18.findings.ndjson" "lane-violation" "CRITICAL" "non-string member"
+assert_ndjson_finding "(S18) verdict not vacuously clean: generic governed-fence CRITICAL also fires" \
+  "$OUT/s18.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
 
 # ===================================================================================
 # BOTH-DIRECTION RECEIPT: S2, S3, S4, S5, S7 replayed against the PRE-upgrade
