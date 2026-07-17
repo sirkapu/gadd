@@ -53,7 +53,7 @@ and the loop continues with the next unblocked ratified item.
 
 ## Stop conditions — the ONLY legitimate global exits
 
-On ANY of these: write the handoff (lantern + one-paragraph state), emit the STATUS block, end the session.
+On ANY of these: write the handoff (lantern + one-paragraph state; regenerate BRIEF.md to this run's state and run `bin/brief-check.sh` — a FAIL blocks the close), emit the STATUS block, end the session.
 
 1. **QUEUE EMPTY** — no unblocked ratified work remains (everything is done or parked awaiting the human).
 2. **NO-PROGRESS (anti-thrash)** — two consecutive no-progress strikes. Stop and escalate with a diagnosis; grinding the same wall burns budget and hides the real blocker.
