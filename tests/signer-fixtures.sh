@@ -310,7 +310,11 @@ chmod +x "$FAKEBIN/git"
 # Extract the PRE-upgrade check-02 (+ its then-current lib/common.sh, which
 # this build does not touch) for the both-direction red-run receipt.
 OLDDIR="$OUT/oldcheck"; mkdir -p "$OLDDIR/lib"
-git -C "$REPO_ROOT" show "$OLD_CHECK02_REF:adapters/lv/checks/02-lane-violation.sh" > "$OLDDIR/02-lane-violation.sh"
+if ! git -C "$REPO_ROOT" show "$OLD_CHECK02_REF:adapters/lv/checks/02-lane-violation.sh" > "$OLDDIR/02-lane-violation.sh" \
+    || [ ! -s "$OLDDIR/02-lane-violation.sh" ]; then
+  echo "FATAL: cannot extract pre-upgrade check-02 at $OLD_CHECK02_REF — history unavailable (shallow clone?); red-run receipts cannot run" >&2
+  exit 1
+fi
 cp "$LIB_COMMON" "$OLDDIR/lib/common.sh"
 OLD_CHECK02="$OLDDIR/02-lane-violation.sh"
 
