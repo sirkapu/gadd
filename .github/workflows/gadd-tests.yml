@@ -21,6 +21,7 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # full history — signer-fixtures.sh red-run extracts the pre-upgrade check-02 from history (git show)

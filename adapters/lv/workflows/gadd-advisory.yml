@@ -17,6 +17,7 @@ permissions:
 jobs:
   advisory:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # full history — accepted_sha resolution + ancestry assertion need it
