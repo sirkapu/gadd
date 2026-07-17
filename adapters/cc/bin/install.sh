@@ -13,6 +13,10 @@ cp "$SRC/../../spec/schemas/"*.json .gadd/schemas/
 
 if [ -L context ] || [ -L context/ubc.md ]; then
   UBC_STATUS="  context/ubc.md -> REFUSED (context or context/ubc.md is a symlink — left untouched)"
+elif [ -e context ] && [ ! -d context ]; then
+  UBC_STATUS="  context/ubc.md -> REFUSED (context exists but is not a directory — left untouched)"
+# A hardlinked context/ubc.md is indistinguishable from a regular file (-L cannot
+# see it); it lands here as SKIPPED and is never written — accepted, by design.
 elif [ -f context/ubc.md ]; then
   UBC_STATUS="  context/ubc.md -> SKIPPED (already exists — left untouched)"
 else
