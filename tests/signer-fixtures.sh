@@ -40,6 +40,18 @@
 #     fail-closed CRITICAL when the base file exists but does not parse.
 #     S14 covers it.
 #
+# S15-S17 added in RUN-24 (DI wrong-TYPE base guard, operator-ratified queue
+# item, run-21 bench note): S14's parse-only guard (`jq -e .`) passed VALID
+# JSON that was the WRONG TYPE — a top-level array/string/number, or an
+# object whose .accept_authors was present but not an array of strings — and
+# `.accept_authors[]? // empty` then silently read as "not set", degrading
+# the author factor with no disclosure (a fail-open). Folded into the same
+# base_baseline_malformed fail-closed branch as S14 (naming the specific type
+# violation) rather than a parallel path. S15 covers a top-level-array base;
+# S16 covers a wrong-type .accept_authors (string); S17 guards the UNCHANGED
+# path (.accept_authors absent) so the fix stays monotonic — no existing red
+# flips green.
+#
 # Scenarios (S1-S10, see run-21 mission brief for the full spec):
 #   S1  enrolled + signed + allowlisted accept -> no findings (PASS)
 #   S2  enrolled + unsigned --author spoof replay -> CRITICAL (signature factor)
@@ -630,6 +642,85 @@ rc="$(run_check02 s14 "$r14" "$BASE14" "$HEAD14")"
 assert_zero "(S14) exit 0" "$rc"
 assert_ndjson_finding "(S14) DATA_INTEGRITY note: malformed base gadd/BASELINE.json -> CRITICAL fail-closed, not a silent skip" \
   "$OUT/s14.findings.ndjson" "lane-violation" "CRITICAL" "does not parse"
+
+# ===================================================================================
+# S15 (RUN-24, DI wrong-TYPE base guard): the base's gadd/BASELINE.json EXISTS
+# and parses as valid JSON, but its top level is an ARRAY, not an object.
+# Pre-fix, the parse-only guard passed this and the author factor silently
+# degraded to "not set" (demonstrated in the mission's both-direction
+# receipt: only a MAJOR "spoofable" nudge, no CRITICAL). Post-fix: an
+# explicit fail-closed CRITICAL naming the wrong type; the generic
+# governed-fence CRITICAL also fires since accept_bad denies the exemption
+# (verdict is not vacuously clean).
+# ===================================================================================
+r15="$WORK/s15"
+mkdir -p "$r15/gadd"
+( cd "$r15" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf '[1,2,3]' > "$r15/gadd/BASELINE.json"
+cat > "$r15/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r15" && git add -A && git commit -q -m init ) >/dev/null
+BASE15="$(cd "$r15" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r15/gadd/BASELINE.json"
+HEAD15="$(accept_commit "$r15" "gadd: accept s15 wrong-type-array" "accept@test.local" "")"
+rc="$(run_check02 s15 "$r15" "$BASE15" "$HEAD15")"
+assert_zero "(S15) exit 0" "$rc"
+assert_ndjson_finding "(S15) RUN-24 DI wrong-TYPE: base top-level is an array, not an object -> CRITICAL fail-closed" \
+  "$OUT/s15.findings.ndjson" "lane-violation" "CRITICAL" "not an object"
+assert_ndjson_finding "(S15) verdict not vacuously clean: generic governed-fence CRITICAL also fires" \
+  "$OUT/s15.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+
+# ===================================================================================
+# S16 (RUN-24, DI wrong-TYPE base guard): the base's gadd/BASELINE.json is a
+# valid object, but .accept_authors is present and non-null yet the WRONG
+# TYPE (a string, not an array of strings). Pre-fix, `.accept_authors[]? //
+# empty` silently read this identically to "not set" too. Post-fix: an
+# explicit fail-closed CRITICAL naming the field and the type violation.
+# ===================================================================================
+r16="$WORK/s16"
+mk_signer_repo "$r16" '"someone@example.com"' 1
+BASE16="$(cd "$r16" && git rev-parse HEAD)"
+bump_baseline "$r16" "s16head"
+HEAD16="$(accept_commit "$r16" "gadd: accept s16 wrong-type-authors" "accept@test.local" "")"
+rc="$(run_check02 s16 "$r16" "$BASE16" "$HEAD16")"
+assert_zero "(S16) exit 0" "$rc"
+assert_ndjson_finding "(S16) RUN-24 DI wrong-TYPE: .accept_authors is a string, not an array -> CRITICAL fail-closed" \
+  "$OUT/s16.findings.ndjson" "lane-violation" "CRITICAL" "not an array of strings"
+assert_ndjson_finding "(S16) verdict not vacuously clean: generic governed-fence CRITICAL also fires" \
+  "$OUT/s16.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+
+# ===================================================================================
+# S17 (RUN-24, DI wrong-TYPE base guard — guards the UNCHANGED path): the
+# base's gadd/BASELINE.json is a valid object with .accept_authors ABSENT
+# entirely (not just empty/null-valued — the key is missing). This is the
+# legitimate "not set" shape and must keep its existing behavior exactly:
+# no wrong-type CRITICAL, just the pre-existing legacy nudge. Proves the fix
+# is monotonic — no existing red flips green, no existing green flips red.
+# ===================================================================================
+r17="$WORK/s17"
+mkdir -p "$r17/gadd"
+( cd "$r17" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf '{"accepted_sha":"0000000000000000000000000000000000000000","metrics":{}}' > "$r17/gadd/BASELINE.json"
+cat > "$r17/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r17" && git add -A && git commit -q -m init ) >/dev/null
+BASE17="$(cd "$r17" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","metrics":{}}' > "$r17/gadd/BASELINE.json"
+HEAD17="$(accept_commit "$r17" "gadd: accept s17 authors-absent" "accept@test.local" "")"
+rc="$(run_check02 s17 "$r17" "$BASE17" "$HEAD17")"
+assert_zero "(S17) exit 0" "$rc"
+assert_ndjson_no_finding_sev "(S17) RUN-24 guard: .accept_authors ABSENT -> no wrong-type CRITICAL (behavior unchanged)" \
+  "$OUT/s17.findings.ndjson" "lane-violation" "CRITICAL"
+assert_ndjson_finding "(S17) pre-existing legacy nudge still fires unchanged (accept_authors not set, no signer)" \
+  "$OUT/s17.findings.ndjson" "lane-violation" "MAJOR" "accept authorship spoofable"
 
 # ===================================================================================
 # BOTH-DIRECTION RECEIPT: S2, S3, S4, S5, S7 replayed against the PRE-upgrade
