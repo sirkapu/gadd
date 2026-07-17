@@ -25,6 +25,28 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #25 DECLARED (2026-07-16 system clock; FRESH SESSION per the
+  post-run-24 directive; lock acquired pid-fresh 86089; heartbeat at declaration:
+  19.9% of ceiling, measured):** bootstrap observations — (a) origin/main ==
+  `17fe0bc` verified live (`git ls-remote`) — the run-24 chain (merge `272742b` +
+  accept `17fe0bc`) is LIVE on origin per the prior close; local main `32d8ee9`
+  exactly 2 lantern commits ahead (run-24-chain-live close + post-run-24
+  directives), unpushed, rides the next operator push per standing practice.
+  (b) HEAD==main verified at `32d8ee9` (standing branch-cut ruling). (c) No open
+  operator buttons. (d) Untracked `reports/` dir still present (operator-side
+  artifacts, run-22 observation standing) — left untouched. Plan by leverage
+  (all picks from the ratified rolled queue, nothing new): (1) BRIEF-FRESHNESS
+  CLOSE-CHECK EVALUATION (operator-queued run-25 pick, verbatim intent "second
+  brief-freshness slip; it deserves a check, not vigilance") — evaluation
+  FIRST; any resulting change to the loop's close law or gates PARKS for
+  ratification per stop condition 2; BRIEF.md is gitignored/local-private,
+  an input to the evaluation. (2) h1/h2 HEARTBEAT EMISSION-EXIT HARDENING
+  (Standard, DI-triggered bench; run-17 DI r3 stay-open note): status-mode
+  measured emission guards its OWN jq exit status and fails closed, retiring
+  the probe proxy. (3) run-22 UX notes (Trivial/Standard: explicit REFUSED on
+  regular-file `context`; hardlink comment) + h3 DI wording note, as budget
+  allows.
+
 - **2026-07-16 (system clock) · POST-RUN-24 OPERATOR DIRECTIVES (verbatim: "regenerate
   BRIEF.md to reflect the current state — it still shows run #23, and a stale
   brief is decision-#17 territory. Also queue for run #25: evaluate a
