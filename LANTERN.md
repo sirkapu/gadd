@@ -25,6 +25,29 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #24 DECLARED (2026-07-16 system clock; FRESH SESSION per the
+  merge-chain close; lock acquired pid-fresh 19172; heartbeat at declaration:
+  19.7% of ceiling, measured):** bootstrap observations — (a) origin/main ==
+  `9fa136b` verified live (`git ls-remote`); local main `6c3beaf` exactly one
+  lantern-close commit ahead (unpushed; rides the next operator push per
+  standing practice). (b) HEAD==main verified at `6c3beaf` — FIRST branch-cut
+  check under the ratified standing ruling: PASS. (c) No open operator buttons
+  (run-22/23 chain live on origin, CI all green per the prior close). Plan by
+  leverage (all picks from the ratified rolled queue, nothing new): (1) DI
+  WRONG-TYPE BASE GUARD (declared MAJOR — gate change, always Major; full bench
+  + Ratifier packet, item-6 L-class tightening candidate): a
+  valid-JSON-but-wrong-TYPE base gadd/BASELINE.json (e.g. `[1,2,3]`, or
+  accept_authors as a string) slips the `jq -e .` parse guard in both
+  02-lane-violation.sh copies (byte-identical `21c1808` at declaration) →
+  author factor silently degrades to the legacy nudge path; tighten to
+  fail-closed CRITICAL with both-direction fixtures (corpus EXTENSION, never
+  narrowing). Leverage trace: direct gate-catch tightening → North Star.
+  (2) h1/h2 HEARTBEAT EMISSION-EXIT HARDENING (Standard, DI-triggered bench):
+  status-mode measured emission guards its OWN jq exit status and fails
+  closed, retiring the probe proxy (run-17 DI r3 stay-open note). (3) run-22
+  UX notes (Trivial/Standard): explicit REFUSED on regular-file `context` +
+  hardlink-case comment in the cc installer, as budget allows.
+
 - **2026-07-16 (system clock) · MERGE CHAIN EXECUTED + TWO STANDING RULINGS RATIFIED
   (operator, verbatim: "approve merge chain as suggested: run-22-ubc →
   run-22-ubc-installer → run-23-ci → run-23-ownership, in that pinned order,
