@@ -25,6 +25,15 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **2026-07-17 (system clock) · POST-RUN-26 RELAUNCH DECLINED IN-SESSION (operator:
+  "Relaunch the loop"):** heartbeat measured 47.5% of ceiling after the
+  operator-driven merge/push extension — past the P1 wall; relaunch = FRESH
+  SESSION (stop condition 4 honored over the relaunch instruction's letter,
+  per the loop's own law and the post-run-24 precedent at 44.3%). Lock
+  acquired pid 1360 for the measurement, released clean. RUN #27 NOT STARTED
+  HERE; first picks on relaunch: run-22 UX notes · h3 wording note ·
+  standing queues.
+
 - **2026-07-17 (system clock) · RUN-26 CHAIN LIVE ON ORIGIN:** operator approved
   the merge and gave the push word in one message ("approve — execute the merge
   … honoring all 7 Ratifier STOPs; no accept due … then push on my word:
