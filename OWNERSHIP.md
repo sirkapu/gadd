@@ -21,6 +21,15 @@ OWNERSHIP.md
 ```
 
 Agent-owned (free to modify): everything else, including `spec/**`,
-`bin/**`, `adapters/**`, `templates/**`, `tests/**`, `docs/**`,
+`bin/**`, `adapters/**`, `templates/**`, `tests/**` (see note below), `docs/**`,
 `context/**`, `gadd/**` (baseline acceptance itself is authorship-gated by
 check #2's `accept_authors` allowlist, not by this lane list).
+
+**On `tests/` and `RED_TEAM/`:** "agent-owned" above means *not gated by the
+deterministic lane check (#2)* — agents add and refine fixtures during normal
+ratified development. It does NOT mean ungoverned. The `tests/` and `RED_TEAM/`
+fixture corpus is the operator-owned *ratified corpus* (charter item-6): the
+Ratifier's L-class whole-corpus-preservation receipt forbids narrowing it,
+CODEOWNERS requires operator review of external-PR changes to it, and CI
+(`gadd-tests`) re-runs it. A proposer may extend or tighten the corpus; only the
+operator may narrow or weaken it.
