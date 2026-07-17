@@ -25,6 +25,29 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #28 DECLARED (2026-07-17 system clock; FRESH SESSION per the
+  run-27 chain-live close; lock acquired pid-fresh 33215; heartbeat at declaration:
+  19.6% of ceiling, measured):** bootstrap observations — (a) origin/main ==
+  `6ac72d4` verified live (`git ls-remote`); local main `641f46e` exactly 1
+  lantern commit ahead (run-27 chain-live), unpushed, rides the next operator
+  push per standing practice. (b) HEAD==main verified at `641f46e` (standing
+  branch-cut ruling). (c) No open operator buttons (run-27 chain live, origin
+  CI all green per the prior close). (d) Untracked `reports/` still present
+  (operator-side artifacts, run-22 observation standing) — left untouched.
+  (e) Both `02-lane-violation.sh` copies byte-identical at declaration
+  (`3b66e001`), matching the run-27 pin. Plan by leverage (all picks from the
+  ratified rolled queue, nothing new): (1) h3 DI WORDING NOTE — FIRST PICK,
+  declared MAJOR (gate change, always Major; run-21 bench-note lineage, spec
+  pinned at the run-27 close): `jq -e .` at the parse guard exits nonzero on
+  valid-JSON top-level `null`/`false` (exit tracks output truthiness), routing
+  those bases to the parse-branch "does not parse" wording instead of the
+  type-named branch — fail-closed CRITICAL either way, wording-only monotonic
+  tightening; fix lands on BOTH copies (`.gadd/checks/` + `adapters/lv/checks/`)
+  byte-identical + additive signer-fixtures scenarios; full bench (Major);
+  governed fence `.gadd/checks/**` → designed gate CRITICAL pre-accept,
+  post-merge accept = operator's own hands per the standing custody ruling.
+  (2) Standing queues as budget allows.
+
 - **2026-07-17 (system clock) · RUN-27 CHAIN LIVE ON ORIGIN (operator: "Push"):**
   push `500a35b..6ac72d4` executed, pre-push hook fired live — gate PASS with
   only the standing signer MINOR (base `d0845e5`), residue clean pre-commit.
