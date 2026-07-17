@@ -55,6 +55,19 @@
 # alongside a non-string member) — S16 alone left the code's `all` check
 # mutable to `any` without any fixture catching it.
 #
+# S19-S21 added in RUN-28 (h3, ratified, wording-only monotonic tightening):
+# `jq -e .`'s exit status tracks the TRUTHINESS of the last output value, not
+# parse validity, so a base gadd/BASELINE.json whose content is valid JSON
+# `null` or `false` exited nonzero at S14's parse guard and got the generic
+# "does not parse" message instead of falling through to S15-S18's
+# type-named branch. Both routes were already CRITICAL fail-closed — this is
+# wording-only. S19 covers a `null` top level; S20 covers a `false` top
+# level (same class as `true`, jq's type name for both is "boolean"); S21
+# pins the adjacent empty-stream edge the fix must not regress: a
+# whitespace-only base file (jq -e . exits 4, no output at all — distinct
+# from exit 1 on a parsed null/false) must still land on the "does not
+# parse" wording, never a type-named message with an empty type.
+#
 # Scenarios (S1-S10, see run-21 mission brief for the full spec):
 #   S1  enrolled + signed + allowlisted accept -> no findings (PASS)
 #   S2  enrolled + unsigned --author spoof replay -> CRITICAL (signature factor)
@@ -747,6 +760,106 @@ assert_ndjson_finding "(S18) RUN-24 REPAIR: .accept_authors array contains a non
   "$OUT/s18.findings.ndjson" "lane-violation" "CRITICAL" "non-string member"
 assert_ndjson_finding "(S18) verdict not vacuously clean: generic governed-fence CRITICAL also fires" \
   "$OUT/s18.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+
+# ===================================================================================
+# S19 (RUN-28 h3): the base's gadd/BASELINE.json EXISTS and is valid JSON
+# whose top level is the literal `null`. Pre-fix, `jq -e .` exits nonzero on
+# a falsy top-level value (truthiness, not parse validity) and the guard
+# fell through to the generic "does not parse" message. Post-fix: routed to
+# the type-named message, same as the array/string wrong-type shapes above.
+# ===================================================================================
+r19="$WORK/s19"
+mkdir -p "$r19/gadd"
+( cd "$r19" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf 'null' > "$r19/gadd/BASELINE.json"
+cat > "$r19/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r19" && git add -A && git commit -q -m init ) >/dev/null
+BASE19="$(cd "$r19" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r19/gadd/BASELINE.json"
+HEAD19="$(accept_commit "$r19" "gadd: accept s19 null-base" "accept@test.local" "")"
+rc="$(run_check02 s19 "$r19" "$BASE19" "$HEAD19")"
+assert_zero "(S19) exit 0" "$rc"
+assert_ndjson_finding "(S19) RUN-28 h3: base top level is JSON null -> CRITICAL, type-named" \
+  "$OUT/s19.findings.ndjson" "lane-violation" "CRITICAL" "top level is a JSON null, not an object"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("does not parse")))] | length == 0' \
+     "$OUT/s19.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S19) message does NOT contain the old 'does not parse' wording (kills stale-routing mutant)"
+else
+  fail "(S19) message does NOT contain the old 'does not parse' wording" \
+    "found 'does not parse' in: $(cat "$OUT/s19.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S20 (RUN-28 h3): same class as S19, base top level is the literal `false`
+# (jq's type name for both true and false is "boolean").
+# ===================================================================================
+r20="$WORK/s20"
+mkdir -p "$r20/gadd"
+( cd "$r20" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf 'false' > "$r20/gadd/BASELINE.json"
+cat > "$r20/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r20" && git add -A && git commit -q -m init ) >/dev/null
+BASE20="$(cd "$r20" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r20/gadd/BASELINE.json"
+HEAD20="$(accept_commit "$r20" "gadd: accept s20 false-base" "accept@test.local" "")"
+rc="$(run_check02 s20 "$r20" "$BASE20" "$HEAD20")"
+assert_zero "(S20) exit 0" "$rc"
+assert_ndjson_finding "(S20) RUN-28 h3: base top level is JSON false -> CRITICAL, naming 'boolean'" \
+  "$OUT/s20.findings.ndjson" "lane-violation" "CRITICAL" "top level is a JSON boolean, not an object"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("does not parse")))] | length == 0' \
+     "$OUT/s20.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S20) message does NOT contain the old 'does not parse' wording (kills stale-routing mutant)"
+else
+  fail "(S20) message does NOT contain the old 'does not parse' wording" \
+    "found 'does not parse' in: $(cat "$OUT/s20.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S21 (RUN-28 h3, adjacent edge the fix must not regress): base
+# gadd/BASELINE.json is a WHITESPACE-ONLY stream (git-show returns it
+# non-empty — spaces, no parseable JSON value at all). `jq -e .` exits 4 here
+# (no output produced), distinct from exit 1 on a parsed null/false — must
+# still route to "does not parse", never a type-named message with an empty
+# type (jq -r 'type' would print nothing on this same empty stream).
+# ===================================================================================
+r21="$WORK/s21"
+mkdir -p "$r21/gadd"
+( cd "$r21" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf '   ' > "$r21/gadd/BASELINE.json"
+cat > "$r21/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r21" && git add -A && git commit -q -m init ) >/dev/null
+BASE21="$(cd "$r21" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r21/gadd/BASELINE.json"
+HEAD21="$(accept_commit "$r21" "gadd: accept s21 whitespace-base" "accept@test.local" "")"
+rc="$(run_check02 s21 "$r21" "$BASE21" "$HEAD21")"
+assert_zero "(S21) exit 0" "$rc"
+assert_ndjson_finding "(S21) RUN-28 h3 empty-stream guard: whitespace-only base -> CRITICAL, 'does not parse' (pinned, not type-named)" \
+  "$OUT/s21.findings.ndjson" "lane-violation" "CRITICAL" "does not parse"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("is a JSON , not an object")))] | length == 0' \
+     "$OUT/s21.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S21) message does NOT contain a blank-typed 'is a JSON , not an object' (kills empty-type-name mutant)"
+else
+  fail "(S21) message does NOT contain a blank-typed 'is a JSON , not an object'" \
+    "found blank type in: $(cat "$OUT/s21.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
 
 # ===================================================================================
 # BOTH-DIRECTION RECEIPT: S2, S3, S4, S5, S7 replayed against the PRE-upgrade
