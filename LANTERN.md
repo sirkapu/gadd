@@ -25,6 +25,29 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #26 DECLARED (2026-07-17 system clock; FRESH SESSION per the
+  run-25 chain-live close; lock acquired pid-fresh 75450; heartbeat at declaration:
+  20.4% of ceiling, measured):** bootstrap observations — (a) operator opened the
+  session via remote control with "push" + "next loop": the pending run-25
+  chain-live lantern commit `479051f` was pushed PRE-declaration
+  (`db6b2f1..479051f`, pre-push hook fired live, gate PASS with only the standing
+  signer MINOR); origin/main == local main == HEAD == `479051f` verified live
+  (`git ls-remote`) — zero unpushed commits, first fully-synced declaration since
+  the custody ruling. (b) HEAD==main verified (standing branch-cut ruling).
+  (c) No open operator buttons. (d) Untracked `reports/` still present
+  (operator-side artifacts, run-22 observation standing) — left untouched.
+  Plan by leverage (all picks ratified, nothing new): (1) BRIEF-CHECK BUILD —
+  RATIFIED FIRST PICK (operator decision 2, run-25 session): Standard packet per
+  §5 of `audits/brief-freshness-eval-v1.md` — `bin/brief-check.sh`
+  (header-anchored criterion, N derived from the lantern's topmost DECLARED
+  entry, fail-closed exit 2 on no-DECLARED) + `tests/brief-fixtures.sh`
+  (incl. the rolls-to-vacuity pin) + the ONE ratified close-law line in
+  `.claude/commands/mission-loop.md`; triggered bench SECURITY + TEST_HONESTY
+  (run-23 precedent); Ratifier packet; merge = operator button. (2) run-22 UX
+  notes (Trivial/Standard: explicit REFUSED on regular-file `context`;
+  hardlink comment in the cc installer). (3) h3 DI wording note (top-level
+  null/false base parse-branch wording), as budget allows.
+
 - **2026-07-17 (system clock) · RUN-25 CHAIN LIVE ON ORIGIN:** push `17fe0bc..db6b2f1`
   executed on the operator's mid-turn instruction — residue clean across all 8
   commits in the range (12 patterns, tree+metadata+message, canaries passed),
