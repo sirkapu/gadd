@@ -65,25 +65,38 @@ set -uo pipefail
 MODE="${1:-check}"
 SESSION_ARG="${2:-${GADD_HEARTBEAT_SESSION:-}}"
 
-# Status mode's output contract is "stdout carries ONLY a JSON object" and every
-# JSON emission below goes through jq. With jq absent, those emissions used to
-# vanish (command-not-found on stderr, EMPTY stdout) while the script still exited
-# 0 — a fail-open a JSON-consuming caller reads as silent success (run #16 bench
-# note n2). Fail closed instead, with a hand-printed static JSON object (no jq
-# needed) so the stdout contract survives the degrade. The probe tests jq
-# FUNCTIONALITY, not PATH presence — a present-but-broken or non-executable jq
-# reproduced the same empty-stdout exit 0 (DATA_INTEGRITY blocker, run #17
-# round 1), and it must exercise the REAL emission surface (`jq -n --argjson`),
-# not a bare identity filter — a jq supporting identity but not generation mode
-# (the jq-1.4 class) passed the identity probe and still emitted nothing
-# (DATA_INTEGRITY blocker, round 2). Check mode is untouched: without working jq
-# its tier-1 read yields nothing and the chain degrades to the labeled bytes
-# tier, which needs no jq.
-if [ "$MODE" = "status" ] && ! jq -n --argjson probe 1 '{p: $probe}' >/dev/null 2>&1; then
-  printf '{"measured":false,"error":"jq unavailable or non-functional - status mode requires jq for JSON output; fail-closed (exit 2, never 0)","method":"unavailable"}\n'
-  echo "[loop-heartbeat] CANNOT MEASURE (status mode) — jq not found on PATH — fail-closed: exit 2, never 0." >&2
-  exit 2
-fi
+# Status mode's output contract is "stdout carries ONLY a JSON object". Every
+# real jq emission in status mode below (garbage-ceiling report, unmeasured
+# report, measured-success emission) now guards ITS OWN exit status and output:
+# jq's stdout is captured into a variable first, and only printed — atomically,
+# via `printf '%s\n'`, so no partial jq output can ever leak — if jq exited 0
+# AND the capture is non-empty; otherwise the emission hand-prints a static
+# fail-closed JSON object (no jq needed), writes a loud line to stderr, and
+# exits 2 — never 0, never empty stdout.
+#
+# This RETIRES the run #16/#17 startup PROBE that used to gate all status-mode
+# jq use up front (`jq -n --argjson probe 1 '{p: $probe}'`). History: run #16
+# bench note n2 found jq-absent emissions vanishing silently (command-not-found
+# on stderr, EMPTY stdout) while the script still exited 0 — a fail-open a
+# JSON-consuming caller reads as silent success. A presence-only PATH check was
+# not enough: DATA_INTEGRITY blocker run #17 round 1 found a present-but-broken
+# or non-executable jq reproducing the same empty-stdout exit 0, so the probe
+# was tightened to exercise a real call shape (`jq -n --argjson`) instead of a
+# bare identity filter. Round 2 found even that insufficient — a jq supporting
+# identity but not generation mode (the jq-1.4 class) passed the identity-style
+# probe and still emitted nothing on generation calls. Each round tightened the
+# PROXY, but a probe's flag surface can never be guaranteed to mirror every
+# real call's exact flags/filter — a residual class survives any proxy: a jq
+# that happens to pass whatever the probe checks while still failing on the
+# real emission's exact args (run #17 DATA_INTEGRITY round-3 stay-open note,
+# closed here). The fix is to stop proxying and guard the real thing: each of
+# the three real emission sites checks its own jq exit code and captured
+# output directly, so no probe shape can ever diverge from the call it was
+# meant to protect. The jq-absent case in status mode still fails closed with
+# the same static-JSON + exit-2 contract — now via whichever real emission
+# fires first for the given inputs, instead of a dedicated startup probe.
+# Check mode is untouched: without working jq its tier-1 read yields nothing
+# and the chain degrades to the labeled bytes tier, which needs no jq.
 
 CEILING="${GADD_CTX_CEILING_TOKENS:-400000}"
 
@@ -99,8 +112,19 @@ CEILING="${GADD_CTX_CEILING_TOKENS:-400000}"
 if ! [ "$CEILING" -gt 0 ] 2>/dev/null; then
   MSG="[loop-heartbeat] CANNOT MEASURE — GADD_CTX_CEILING_TOKENS=\"$CEILING\" is not a positive integer — fail-closed: refusing to compare context against a garbage/non-positive ceiling (never exit 0 on unmeasurable input)."
   if [ "$MODE" = "status" ]; then
-    jq -n --arg ceiling_raw "$CEILING" --arg reason "$MSG" \
-      '{measured: false, error: $reason, ceiling_raw: $ceiling_raw, method: "unavailable"}'
+    # Guard this emission's own jq call (retired-probe mechanism, see header
+    # comment): capture output + exit status, print atomically only on
+    # success, else hand-print the static fail-closed shape — never empty
+    # stdout, never exit 0, regardless of why jq failed on THIS call.
+    JQ_OUT="$(jq -n --arg ceiling_raw "$CEILING" --arg reason "$MSG" \
+      '{measured: false, error: $reason, ceiling_raw: $ceiling_raw, method: "unavailable"}' 2>/dev/null)"
+    JQ_RC=$?
+    if [ "$JQ_RC" -eq 0 ] && [ -n "$JQ_OUT" ]; then
+      printf '%s\n' "$JQ_OUT"
+    else
+      printf '{"measured":false,"error":"jq unavailable or non-functional emitting the garbage-ceiling report - fail-closed (exit 2, never 0)","method":"unavailable"}\n'
+      echo "[loop-heartbeat] CANNOT MEASURE (status mode, garbage-ceiling report) — jq failed or produced empty output on the real emission call — fail-closed: exit 2, never 0." >&2
+    fi
     echo "$MSG" >&2
   else
     echo "$MSG"
@@ -202,10 +226,21 @@ if [ "$METHOD" = "unavailable" ]; then
   if [ "$MODE" = "status" ]; then
     # status mode: stdout carries ONLY the JSON object (never mixed with the loud
     # text line) so callers can always pipe it straight into jq; the loud line
-    # still goes to stderr so a human tailing the run sees it.
-    jq -n --arg source "${SOURCE_FILE:-}" --arg resolution "$SESSION_RESOLUTION" \
+    # still goes to stderr so a human tailing the run sees it. Guard this
+    # emission's own jq call (retired-probe mechanism, see header comment):
+    # capture output + exit status, print atomically only on success, else
+    # hand-print the static fail-closed shape — never empty stdout, never
+    # exit 0.
+    JQ_OUT="$(jq -n --arg source "${SOURCE_FILE:-}" --arg resolution "$SESSION_RESOLUTION" \
       --arg reason "$REASON" --argjson ceiling "$CEILING" \
-      '{measured: false, error: $reason, source_file: $source, session_resolution: $resolution, method: "unavailable", ceiling: $ceiling}'
+      '{measured: false, error: $reason, source_file: $source, session_resolution: $resolution, method: "unavailable", ceiling: $ceiling}' 2>/dev/null)"
+    JQ_RC=$?
+    if [ "$JQ_RC" -eq 0 ] && [ -n "$JQ_OUT" ]; then
+      printf '%s\n' "$JQ_OUT"
+    else
+      printf '{"measured":false,"error":"jq unavailable or non-functional emitting the unmeasured report - fail-closed (exit 2, never 0)","method":"unavailable"}\n'
+      echo "[loop-heartbeat] CANNOT MEASURE (status mode, unmeasured report) — jq failed or produced empty output on the real emission call — fail-closed: exit 2, never 0." >&2
+    fi
     echo "$MSG" >&2
   else
     echo "$MSG"
@@ -217,13 +252,25 @@ fi
 PCT="$(awk -v v="$VALUE" -v c="$CEILING" 'BEGIN{ if (c>0) printf "%.1f", (v/c)*100; else print "n/a" }')"
 
 if [ "$MODE" = "status" ]; then
-  jq -n --arg source "$SOURCE_FILE" --arg resolution "$SESSION_RESOLUTION" \
+  # Guard this emission's own jq call (retired-probe mechanism, see header
+  # comment): capture output + exit status, print atomically only on success
+  # (`printf '%s\n'` so no partial jq output can leak), else hand-print the
+  # static fail-closed shape and exit 2 — a successful MEASUREMENT is never
+  # enough; the JSON must actually reach stdout, or this is a fail-open.
+  JQ_OUT="$(jq -n --arg source "$SOURCE_FILE" --arg resolution "$SESSION_RESOLUTION" \
     --arg method "$METHOD" --argjson value "$VALUE" --argjson raw_value "${RAW_VALUE:-0}" \
     --argjson ceiling "$CEILING" --arg pct "$PCT" --arg note "$MEASURE_NOTE" \
     '{measured: true, source_file: $source, session_resolution: $resolution, method: $method,
       value: $value, raw_value: $raw_value, ceiling: $ceiling, pct: ($pct | tonumber),
-      note: (if $note == "" then null else $note end)}'
-  exit 0
+      note: (if $note == "" then null else $note end)}' 2>/dev/null)"
+  JQ_RC=$?
+  if [ "$JQ_RC" -eq 0 ] && [ -n "$JQ_OUT" ]; then
+    printf '%s\n' "$JQ_OUT"
+    exit 0
+  fi
+  printf '{"measured":false,"error":"jq unavailable or non-functional emitting the measured-success report - fail-closed (exit 2, never 0)","method":"unavailable"}\n'
+  echo "[loop-heartbeat] CANNOT MEASURE (status mode, measured-success emission) — jq failed or produced empty output despite a successful measurement — fail-closed: exit 2, never 0." >&2
+  exit 2
 fi
 
 # check mode

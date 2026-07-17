@@ -361,6 +361,112 @@ assert_eq "(12e) generation-broken-jq status still emits measured:false JSON on 
   "$(printf '%s' "$out12e" | grep -q '"measured":false' && echo true || echo false)"
 
 # ===================================================================================
+# Scenario 13: THE RESIDUAL CLASS (run #17 DATA_INTEGRITY round-3 stay-open note,
+# closed by retiring the line-82 startup probe in favor of guarding every real
+# emission's own jq exit status). This jq behaves correctly for probe-class
+# invocations — any call WITHOUT --arg, which is the flag surface of the old
+# probe (`jq -n --argjson probe 1 ...`) AND of this script's tier-1 measurement
+# calls (`jq -R -c ...`, `jq -n --argjson u ...`) — but exits nonzero with NO
+# stdout on the real emission surface (`--arg`, used by all three status-mode
+# JSON emissions). A presence/probe-shape check would have let this jq straight
+# through undetected; guarding each real emission's own exit status is what
+# catches it. Status mode must fail closed: exit 2, stdout is exactly one line
+# of valid JSON with measured:false, loud stderr — never exit 0, never empty
+# stdout. Exercised against BOTH real-transcript flows: the measured-success
+# emission (f1, tier-1 tokens still resolve since that call lacks --arg) and
+# the unmeasured-report emission (missing transcript), proving the guard holds
+# at more than one of the three sites.
+# ===================================================================================
+RESIDUALJQ="$WORK/residualjq-bin"
+mkdir -p "$RESIDUALJQ"
+for b in bash sh env git sed ls head tail wc tr awk grep cat mktemp dirname basename; do
+  p="$(command -v "$b" 2>/dev/null)" && ln -s "$p" "$RESIDUALJQ/$b"
+done
+{
+  printf '#!/bin/sh\n'
+  printf 'for a in "$@"; do case "$a" in --arg) exit 7;; esac; done\n'
+  printf 'exec %s "$@"\n' "$REALJQ"
+} > "$RESIDUALJQ/jq"
+chmod +x "$RESIDUALJQ/jq"
+
+# 13a: residual-class jq hitting the measured-success emission (f1 measures fine
+# via tier-1 tokens — that jq call has no --arg — but the final --arg-bearing
+# emission call fails hard).
+err13a="$WORK/err13a.txt"
+out13a="$(PATH="$RESIDUALJQ" "$SCRIPT" status "$f1" 2>"$err13a")"; rc13a=$?
+assert_eq "(13a) residual-class jq, measured-success site -> exit 2 (never 0)" "2" "$rc13a"
+assert_eq "(13a) residual-class jq -> stdout non-empty" "true" \
+  "$(test -n "$out13a" && echo true || echo false)"
+assert_eq "(13a) residual-class jq -> stdout is exactly one line" "1" \
+  "$(printf '%s\n' "$out13a" | wc -l | tr -d ' ')"
+assert_eq "(13a) residual-class jq -> stdout parses as valid JSON, measured:false" "false" \
+  "$(printf '%s' "$out13a" | "$REALJQ" -r '.measured' 2>/dev/null)"
+assert_eq "(13a) residual-class jq -> loud stderr line present" "true" \
+  "$(grep -q '\[loop-heartbeat\]' "$err13a" && echo true || echo false)"
+
+# 13b: residual-class jq hitting the unmeasured-report emission (missing
+# transcript -> METHOD stays unavailable -> the second real emission site).
+err13b="$WORK/err13b.txt"
+out13b="$(PATH="$RESIDUALJQ" "$SCRIPT" status "$missing" 2>"$err13b")"; rc13b=$?
+assert_eq "(13b) residual-class jq, unmeasured-report site -> exit 2 (never 0)" "2" "$rc13b"
+assert_eq "(13b) residual-class jq, unmeasured-report site -> stdout non-empty, measured:false" "false" \
+  "$(printf '%s' "$out13b" | "$REALJQ" -r '.measured' 2>/dev/null)"
+assert_eq "(13b) residual-class jq, unmeasured-report site -> loud stderr line present" "true" \
+  "$(grep -q '\[loop-heartbeat\]' "$err13b" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 14: the EMPTY-OUTPUT class — a fake jq that EXITS 0 but prints NOTHING
+# on the real emission surface (--arg present), while behaving correctly (via
+# delegation to the real jq) on probe-class/tier-1 calls. exit-code-only guards
+# would have missed this; the guard must also reject a zero exit with empty
+# captured output. Same fail-closed contract, exercised at both sites.
+# ===================================================================================
+EMPTYOKJQ="$WORK/emptyokjq-bin"
+mkdir -p "$EMPTYOKJQ"
+for b in bash sh env git sed ls head tail wc tr awk grep cat mktemp dirname basename; do
+  p="$(command -v "$b" 2>/dev/null)" && ln -s "$p" "$EMPTYOKJQ/$b"
+done
+{
+  printf '#!/bin/sh\n'
+  printf 'for a in "$@"; do case "$a" in --arg) exit 0;; esac; done\n'
+  printf 'exec %s "$@"\n' "$REALJQ"
+} > "$EMPTYOKJQ/jq"
+chmod +x "$EMPTYOKJQ/jq"
+
+# 14a: empty-output-but-exit-0 jq hitting the measured-success emission.
+err14a="$WORK/err14a.txt"
+out14a="$(PATH="$EMPTYOKJQ" "$SCRIPT" status "$f1" 2>"$err14a")"; rc14a=$?
+assert_eq "(14a) empty-output exit-0 jq, measured-success site -> exit 2 (never 0)" "2" "$rc14a"
+assert_eq "(14a) empty-output exit-0 jq -> stdout is exactly one line" "1" \
+  "$(printf '%s\n' "$out14a" | wc -l | tr -d ' ')"
+assert_eq "(14a) empty-output exit-0 jq -> stdout parses as valid JSON, measured:false" "false" \
+  "$(printf '%s' "$out14a" | "$REALJQ" -r '.measured' 2>/dev/null)"
+assert_eq "(14a) empty-output exit-0 jq -> loud stderr line present" "true" \
+  "$(grep -q '\[loop-heartbeat\]' "$err14a" && echo true || echo false)"
+
+# 14b: empty-output-but-exit-0 jq hitting the unmeasured-report emission.
+err14b="$WORK/err14b.txt"
+out14b="$(PATH="$EMPTYOKJQ" "$SCRIPT" status "$missing" 2>"$err14b")"; rc14b=$?
+assert_eq "(14b) empty-output exit-0 jq, unmeasured-report site -> exit 2 (never 0)" "2" "$rc14b"
+assert_eq "(14b) empty-output exit-0 jq, unmeasured-report site -> measured:false" "false" \
+  "$(printf '%s' "$out14b" | "$REALJQ" -r '.measured' 2>/dev/null)"
+assert_eq "(14b) empty-output exit-0 jq, unmeasured-report site -> loud stderr line present" "true" \
+  "$(grep -q '\[loop-heartbeat\]' "$err14b" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 15: probe-retirement observable-mechanism check. Scenario 12a already
+# pins jq-absent status mode -> exit 2 + measured:false JSON (unchanged contract).
+# This scenario pins that the retirement actually changed the MECHANISM, not just
+# preserved the old blanket message: the static fail-closed body now names the
+# specific emission site that failed (no single startup-probe message could name
+# a specific site, since it never got as far as attempting a real emission).
+# ===================================================================================
+out15="$(PATH="$NOJQ" "$SCRIPT" status "$f1" 2>/dev/null)"; rc15=$?
+assert_eq "(15) jq-absent status mode -> exit 2 (regression, same contract as 12a)" "2" "$rc15"
+assert_eq "(15) jq-absent error text now names the specific emission site (probe retired)" "true" \
+  "$(printf '%s' "$out15" | grep -q 'emitting the' && echo true || echo false)"
+
+# ===================================================================================
 # Mutation demo 3 (scenario-10 counterpart): force the tier-1 validity condition to
 # literal-true in a scratch copy -> the mutant must reproduce the fabricated
 # "tokens/0/OK" reading on the scenario-10b over-ceiling transcript, proving the
