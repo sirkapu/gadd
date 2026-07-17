@@ -66,6 +66,16 @@
 # fail-closed (repair round 1, DATA_INTEGRITY note) rather than a silent
 # skip of the author factor — `jq`'s `// empty` fallback previously made a
 # malformed base indistinguishable from "accept_authors not set".
+#
+# WRONG-TYPE base guard (run-21 bench note, operator-ratified queue item):
+# the parse-only guard above (`jq -e .`) passes VALID JSON that is the WRONG
+# TYPE — a top-level array/string/number, or an object whose .accept_authors
+# is present but not an array of strings — and `.accept_authors[]? // empty`
+# then silently yields empty, degrading to the "not set" legacy-nudge /
+# enrolled-skip semantics. Both shapes are now folded into the same
+# base_baseline_malformed fail-closed branch (naming the specific type
+# violation) rather than a parallel path. accept_authors absent or null, and
+# an empty array, are unchanged — legitimate not-set / no-op shapes.
 source "$(dirname "$0")/lib/common.sh"
 
 ownership_source="base"
@@ -101,11 +111,31 @@ fi
 base_baseline_content="$(git show "$GADD_BASE:gadd/BASELINE.json" 2>/dev/null || true)"
 accept_allow=""
 base_baseline_malformed=0
+base_baseline_malformed_msg="does not parse"
 if [ -n "$base_baseline_content" ]; then
-  if printf '%s' "$base_baseline_content" | jq -e . >/dev/null 2>&1; then
-    accept_allow="$(printf '%s' "$base_baseline_content" | jq -r '.accept_authors[]? // empty' 2>/dev/null || true)"
-  else
+  if ! printf '%s' "$base_baseline_content" | jq -e . >/dev/null 2>&1; then
     base_baseline_malformed=1
+  elif ! printf '%s' "$base_baseline_content" | jq -e 'type == "object"' >/dev/null 2>&1; then
+    base_type="$(printf '%s' "$base_baseline_content" | jq -r 'type' 2>/dev/null || true)"
+    base_baseline_malformed=1
+    base_baseline_malformed_msg="top level is a JSON $base_type, not an object"
+  else
+    aa_type="$(printf '%s' "$base_baseline_content" | jq -r '.accept_authors | type' 2>/dev/null || true)"
+    case "$aa_type" in
+      null) : ;; # absent or null — legitimate not-set, behavior unchanged
+      array)
+        if printf '%s' "$base_baseline_content" | jq -e '[.accept_authors[] | type == "string"] | all' >/dev/null 2>&1; then
+          accept_allow="$(printf '%s' "$base_baseline_content" | jq -r '.accept_authors[]? // empty' 2>/dev/null || true)"
+        else
+          base_baseline_malformed=1
+          base_baseline_malformed_msg=".accept_authors is an array containing non-string member(s)"
+        fi
+        ;;
+      *)
+        base_baseline_malformed=1
+        base_baseline_malformed_msg=".accept_authors is a $aa_type, not an array of strings"
+        ;;
+    esac
   fi
 fi
 
@@ -113,7 +143,7 @@ accept_bad=0
 
 if [ -n "$accept_touched" ]; then
   if [ "$base_baseline_malformed" -eq 1 ]; then
-    finding "lane-violation" "CRITICAL" "accepted baseline gadd/BASELINE.json does not parse — cannot verify accept authorship (fail-closed)" "gadd/BASELINE.json"
+    finding "lane-violation" "CRITICAL" "accepted baseline gadd/BASELINE.json $base_baseline_malformed_msg — cannot verify accept authorship (fail-closed)" "gadd/BASELINE.json"
     accept_bad=1
   fi
 
