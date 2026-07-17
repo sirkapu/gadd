@@ -1,6 +1,9 @@
 # UBC — Ultrathink Before Coding
 
-For EVERY task, ultrathink before coding.
+Think in proportion to the task's tier:
+- Trivial — the standing rules below; no extended-thinking trigger.
+- Standard — think before coding or writing.
+- Major — ultrathink before coding.
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
 Before implementing:
 - State your assumptions explicitly. If uncertain, ask.
