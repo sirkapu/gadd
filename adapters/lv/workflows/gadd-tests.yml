@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # full history — signer-fixtures.sh red-run extracts the pre-upgrade check-02 from history (git show)
       - name: Run every tests/*.sh fixture suite (signal only — never a merge gate)
         run: |
           set -u
