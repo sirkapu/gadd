@@ -76,6 +76,17 @@
 # base_baseline_malformed fail-closed branch (naming the specific type
 # violation) rather than a parallel path. accept_authors absent or null, and
 # an empty array, are unchanged — legitimate not-set / no-op shapes.
+#
+# WRONG-TYPE wording tightening (run-28 h3, ratified, wording-only): `jq -e
+# .`'s exit status tracks the TRUTHINESS of the last output value, not parse
+# validity, so a base file whose content is valid JSON `null` or `false`
+# exited nonzero at the parse guard and got the generic "does not parse"
+# message instead of the type-named one. Now branched on jq's own exit-code
+# taxonomy (1 = valid-but-falsy top level -> type-named; 4/5/other = no
+# output or a genuine syntax error -> "does not parse"), so a whitespace-only
+# empty stream (jq -e . exit 4, jq -r 'type' would print nothing) is never
+# mistaken for a parsed null/false and can never produce a blank-typed
+# message. Both routes remain CRITICAL fail-closed — no severity changes.
 source "$(dirname "$0")/lib/common.sh"
 
 ownership_source="base"
@@ -113,7 +124,21 @@ accept_allow=""
 base_baseline_malformed=0
 base_baseline_malformed_msg="does not parse"
 if [ -n "$base_baseline_content" ]; then
-  if ! printf '%s' "$base_baseline_content" | jq -e . >/dev/null 2>&1; then
+  printf '%s' "$base_baseline_content" | jq -e . >/dev/null 2>&1
+  base_jq_rc=$?
+  if [ "$base_jq_rc" -eq 1 ]; then
+    # Valid JSON whose single top-level value is the JSON literal null or
+    # false (jq -e's ONLY way to exit 1 on the identity filter `.`) — never
+    # a parse failure. Route straight to the type-named message.
+    base_type="$(printf '%s' "$base_baseline_content" | jq -r 'type' 2>/dev/null || true)"
+    base_baseline_malformed=1
+    base_baseline_malformed_msg="top level is a JSON $base_type, not an object"
+  elif [ "$base_jq_rc" -ne 0 ]; then
+    # exit 4 (empty/whitespace-only stream — no JSON value produced at all)
+    # or 5 (genuine syntax error), or any other nonzero: does not parse.
+    # Guarded ahead of the object-type check below so an empty stream can
+    # never reach `jq -r 'type'` (which would print nothing there too) and
+    # surface a blank-typed message.
     base_baseline_malformed=1
   elif ! printf '%s' "$base_baseline_content" | jq -e 'type == "object"' >/dev/null 2>&1; then
     base_type="$(printf '%s' "$base_baseline_content" | jq -r 'type' 2>/dev/null || true)"
