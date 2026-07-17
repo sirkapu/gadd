@@ -25,6 +25,31 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #27 DECLARED (2026-07-17 system clock; FRESH SESSION per the
+  post-run-26 relaunch-declined directive; lock acquired pid-fresh 21948;
+  heartbeat at declaration: 18.6% of ceiling, measured):** bootstrap
+  observations — (a) origin/main == `500a35b` verified live (`git ls-remote`);
+  local main `00042aa` exactly 2 lantern commits ahead (run-26 chain-live +
+  relaunch-declined), unpushed, rides the next operator push per standing
+  practice. (b) HEAD==main verified at `00042aa` (standing branch-cut ruling).
+  (c) No open operator buttons (run-26 chain live, origin CI all green per the
+  prior close). (d) Untracked `reports/` still present (operator-side
+  artifacts, run-22 observation standing) — left untouched. Plan by leverage
+  (all picks from the ratified rolled queue, nothing new): (1) RUN-22 UX NOTES
+  (Standard — installer robustness, `adapters/cc/bin/install.sh` only):
+  explicit REFUSED status when `context` exists but is not a directory (today
+  a regular-file `context` crashes `mkdir -p` raw under set -e — fail-visible
+  but not fail-explained) + the hardlink-case comment (a hardlinked
+  `context/ubc.md` is undetectable as a link, caught by `-f` → SKIPPED,
+  never written — accepted, documented); triggered bench SECURITY +
+  REGRESSION (run-22 installer precedent); Ratifier packet; merge = operator
+  button. (2) h3 DI WORDING NOTE (declared MAJOR — gate change, always
+  Major): top-level `null`/`false` base gadd/BASELINE.json emits the
+  parse-branch "does not parse" wording instead of a type-named message
+  (still fail-closed CRITICAL — wording-only tightening on both
+  02-lane-violation.sh copies, governed fence, accept = operator's own
+  hands), as budget allows.
+
 - **2026-07-17 (system clock) · POST-RUN-26 RELAUNCH DECLINED IN-SESSION (operator:
   "Relaunch the loop"):** heartbeat measured 47.5% of ceiling after the
   operator-driven merge/push extension — past the P1 wall; relaunch = FRESH
