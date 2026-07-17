@@ -25,6 +25,35 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #23 DECLARED (2026-07-16 system clock; FRESH SESSION per run-22
+  close; lock acquired pid-fresh 26499; heartbeat at declaration: 9.1% of ceiling,
+  measured):** bootstrap observations — (a) origin/main still `8c8a248` (verified
+  `git ls-remote`); local main 2 lantern commits ahead (unpushed); the run-22 UBC
+  merge chain (`903ac05` → `3f688ca`) still parked at the operator's buttons,
+  untouched between sessions. (b) ORIGIN CI NOW MEASURED (closes run-22's
+  unmeasured item): on `8c8a248` gadd-ratchet SUCCESS · gadd-redteam SUCCESS ·
+  **gadd-tests FAILURE — a red guard on origin main, diagnosed with receipts**:
+  the workflow checkout is shallow (CI log: `fetch-depth: 1`) while
+  `tests/signer-fixtures.sh`'s both-direction red-run extracts the pre-upgrade
+  check-02 from history (`OLD_CHECK02_REF=44f09ed`) → CI log `fatal: invalid
+  object name '44f09ed'` → empty old-check script → red-run S2–S5 "old check
+  finds nothing" assertions passed VACUOUSLY; assertion 47 (the only one
+  requiring a finding to EXIST) caught it and failed the suite — fail-visible,
+  the corpus working, but the vacuous-pass window is a test-honesty gap to close
+  in the same repair. Local runs were never affected (full clone; 48/48 in
+  run-21/22 benches). Every sibling workflow (ratchet, redteam, advisory, both
+  copies each) already pins `fetch-depth: 0`; gadd-tests is the lone omission.
+  Plan by leverage: (1) RED-GUARD REPAIR of the shipped run-21 citests item
+  (Standard) — `fetch-depth: 0` on gadd-tests (both copies byte-identical),
+  fail-loud old-check extraction in the signer suite (corpus TIGHTENING, never
+  narrowing), + the run-21 ratified queue item `timeout-minutes` on PR-triggered
+  jobs (gadd-tests + gadd-advisory, uniform) as a separate commit on the same
+  branch; SECURITY-triggered bench + deterministic receipts. (2) ITEM 3
+  OWNERSHIP wording O-class edit (operator-ratified run #21 w/ amendment,
+  payload pinned verbatim in the run-22 close entry below) — accept dance +
+  Ratifier O-class receipt. (3) h1/h2 · DI wrong-TYPE base guard · run-22 UX
+  notes, as budget allows.
+
 - **mission-loop run #22 CLOSE (same session; 2 items completed, both MERGE-READY at
   the operator's tier-3 buttons; heartbeat at close ≈40% of ceiling — the P1 wall,
   measured):** ITEM 2 PROPORTIONAL-UBC (Major, full bench) — `mission/run-22-ubc`
