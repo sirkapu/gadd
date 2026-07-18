@@ -295,6 +295,159 @@ assert_eq "(M) comparison-stripped mutant reports OK (exit 0) on a mutated tree 
 assert_eq "(M) real guard exits 2 on the same mutated tree — scenario 2 kills this mutant; the comparison is load-bearing" "2" "$rcM_real"
 
 # ===================================================================================
+# Bench repair round 1 additions (additive only — scenarios 1-13 and the
+# mutation-bite receipt above are untouched). Scenarios 14-20 pin the two r1
+# blockers (staged-index content, ignored-path residue) and the r1 notes
+# (non-regular-file safety, git-env neutralization).
+# ===================================================================================
+
+# ===================================================================================
+# Scenario 14: EXACT DATA_INTEGRITY r1 repro — poisoned index behind a restored
+# worktree. Baseline: stage v3 of alpha.txt, restore the worktree to HEAD content
+# (status "MM", worktree diff empty), snapshot. Adversary: swap the STAGED content
+# to v4 and restore the worktree again — status flags and worktree diff are
+# byte-identical to the baseline; only index-vs-HEAD content differs. verify must
+# exit 2. Pre-fix this exited 0 (the hole).
+# mutation-honesty: kills a mutant that drops component (d) (`git diff --cached
+# --binary`) from the fingerprint, blind to index-content swaps.
+# ===================================================================================
+r14="$(new_repo s14)"
+printf 'v3-poison\n' > "$r14/alpha.txt"
+git -C "$r14" add alpha.txt
+printf 'alpha v1\n' > "$r14/alpha.txt"   # worktree restored to HEAD content
+fp14="$(cd "$r14" && "$SCRIPT" snapshot)"
+printf 'v4-poison\n' > "$r14/alpha.txt"
+git -C "$r14" add alpha.txt
+printf 'alpha v1\n' > "$r14/alpha.txt"   # worktree restored again — same status, same worktree diff
+err14="$WORK/err14.txt"
+(cd "$r14" && "$SCRIPT" verify "$fp14" >/dev/null 2>"$err14"); rc14=$?
+assert_eq "(14) staged-content swap behind restored worktree -> exit 2 (DI r1 blocker)" "2" "$rc14"
+assert_eq "(14) stderr names the poisoned path (alpha.txt)" "true" \
+  "$(grep -q 'alpha\.txt' "$err14" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 15: ignored-file dropping (SECURITY r1 repro) — .gitignore'd path
+# appears after snapshot. Committed .gitignore covers secret-*; the dropping is
+# invisible to status and to exclude-honoring enumeration, so only component (e)
+# (no-exclude enumeration) can catch it. verify must exit 2. Pre-fix exited 0.
+# mutation-honesty: kills a mutant that restores --exclude-standard to the
+# untracked enumeration, re-opening the ignored-residue blind spot.
+# ===================================================================================
+r15="$(new_repo s15)"
+printf 'secret-*\n' > "$r15/.gitignore"
+git -C "$r15" add .gitignore
+git -C "$r15" commit -q -m "add ignore rule"
+fp15="$(cd "$r15" && "$SCRIPT" snapshot)"
+printf 'adversary droppings\n' > "$r15/secret-residue.txt"
+err15="$WORK/err15.txt"
+(cd "$r15" && "$SCRIPT" verify "$fp15" >/dev/null 2>"$err15"); rc15=$?
+assert_eq "(15) ignored-file dropping -> exit 2 (SECURITY r1 blocker)" "2" "$rc15"
+assert_eq "(15) stderr names the ignored dropping (secret-residue.txt)" "true" \
+  "$(grep -q 'secret-residue\.txt' "$err15" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 16: ignored-file CONTENT change — ignored file present at snapshot time
+# and at verify time, same name, different bytes. Status output is identical in
+# both states (empty — the file is ignored), so only per-file hashing of the
+# no-exclude enumeration can catch it. verify must exit 2.
+# mutation-honesty: kills a mutant that lists ignored paths but skips hashing
+# their bytes (path-presence-only coverage).
+# ===================================================================================
+r16="$(new_repo s16)"
+printf 'secret-*\n' > "$r16/.gitignore"
+git -C "$r16" add .gitignore
+git -C "$r16" commit -q -m "add ignore rule"
+printf 'payload v1\n' > "$r16/secret-cache.txt"
+fp16="$(cd "$r16" && "$SCRIPT" snapshot)"
+printf 'payload v2\n' > "$r16/secret-cache.txt"
+err16="$WORK/err16.txt"
+(cd "$r16" && "$SCRIPT" verify "$fp16" >/dev/null 2>"$err16"); rc16=$?
+assert_eq "(16) ignored-file content change -> exit 2" "2" "$rc16"
+
+# ===================================================================================
+# Scenario 17: exclude pattern planted in .git/info/exclude, then a matching
+# dropping. Planting an exclude is the adversary's cloaking move — status and any
+# exclude-honoring enumeration go blind, but component (e) consults no excludes
+# at all, so the dropping is still hashed. verify must exit 2.
+# mutation-honesty: kills a mutant that enumerates with any exclude source
+# honored (.gitignore, info/exclude, core.excludesFile) — a plantable cloak.
+# ===================================================================================
+r17="$(new_repo s17)"
+fp17="$(cd "$r17" && "$SCRIPT" snapshot)"
+printf 'covert-*\n' >> "$r17/.git/info/exclude"
+printf 'cloaked droppings\n' > "$r17/covert-drop.txt"
+err17="$WORK/err17.txt"
+(cd "$r17" && "$SCRIPT" verify "$fp17" >/dev/null 2>"$err17"); rc17=$?
+assert_eq "(17) info/exclude-cloaked dropping -> exit 2" "2" "$rc17"
+assert_eq "(17) stderr names the cloaked dropping (covert-drop.txt)" "true" \
+  "$(grep -q 'covert-drop\.txt' "$err17" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 18: untracked FIFO present -> NO HANG, deterministic result. Documented
+# outcome: exit 0 — git itself never enumerates non-regular files (`ls-files -o`
+# skips FIFOs/sockets/devices; verified empirically), so the guard never sees and
+# NEVER OPENS the FIFO; its presence is invisible to any git-based fingerprint
+# (disclosed limitation in the instrument header). The load-bearing assertion is
+# that verify RETURNS — a guard that opened the FIFO would block forever on a
+# reader-less pipe. Run with a watchdog so a hang fails the suite instead of
+# wedging it.
+# mutation-honesty: kills a mutant that stats/opens every enumerated OR
+# hand-globbed path without a regular-file check (the hang class).
+# ===================================================================================
+r18="$(new_repo s18)"
+fp18="$(cd "$r18" && "$SCRIPT" snapshot)"
+mkfifo "$r18/pipe1"
+(cd "$r18" && "$SCRIPT" verify "$fp18" >/dev/null 2>&1) &
+pid18=$!
+rc18=124
+for _ in $(seq 1 50); do
+  kill -0 "$pid18" 2>/dev/null || { wait "$pid18"; rc18=$?; break; }
+  sleep 0.2
+done
+if [ "$rc18" = "124" ]; then
+  kill -9 "$pid18" 2>/dev/null || true
+  wait "$pid18" 2>/dev/null || true
+fi
+assert_eq "(18) untracked FIFO -> no hang, deterministic exit 0 (git never enumerates non-regular files; guard never opens them — disclosed)" "0" "$rc18"
+
+# ===================================================================================
+# Scenario 19: untracked symlink retarget — link present at snapshot pointing at
+# alpha.txt, retargeted to beta.txt before verify. The guard hashes the TARGET
+# STRING (readlink), never the referent's content (no follow — a link into a
+# moving target or a FIFO must not be opened), so the retarget is caught even
+# though the link's own status listing (?? link1) is unchanged. verify must
+# exit 2.
+# mutation-honesty: kills a mutant that hashes symlinks by opening them (follows
+# into referents — wrong substrate and a hang/traversal risk) or skips them.
+# ===================================================================================
+r19="$(new_repo s19)"
+ln -s alpha.txt "$r19/link1"
+fp19="$(cd "$r19" && "$SCRIPT" snapshot)"
+rm "$r19/link1"
+ln -s beta.txt "$r19/link1"
+err19="$WORK/err19.txt"
+(cd "$r19" && "$SCRIPT" verify "$fp19" >/dev/null 2>"$err19"); rc19=$?
+assert_eq "(19) untracked symlink retarget -> exit 2" "2" "$rc19"
+assert_eq "(19) stderr names the retargeted link (link1)" "true" \
+  "$(grep -q 'link1' "$err19" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 20: GIT_INDEX_FILE poisoning neutralized — the guard unsets ALL
+# inherited GIT_* env at startup, so a bogus GIT_INDEX_FILE must not redirect the
+# measurement: a poisoned-env snapshot equals the clean snapshot byte-for-byte,
+# and a poisoned-env verify against the clean fingerprint exits 0.
+# mutation-honesty: kills a mutant that trusts inherited git environment — under
+# which a caller-planted GIT_INDEX_FILE makes the guard fingerprint a phantom
+# index (every git status/diff read lies) instead of the real repo.
+# ===================================================================================
+r20="$(new_repo s20)"
+fp20="$(cd "$r20" && "$SCRIPT" snapshot)"
+fp20p="$(cd "$r20" && GIT_INDEX_FILE="$WORK/bogus-index-does-not-exist" "$SCRIPT" snapshot)"
+assert_eq "(20) snapshot under bogus GIT_INDEX_FILE == clean snapshot (env neutralized)" "$fp20" "$fp20p"
+(cd "$r20" && GIT_INDEX_FILE="$WORK/bogus-index-does-not-exist" "$SCRIPT" verify "$fp20" >/dev/null 2>&1); rc20=$?
+assert_eq "(20) verify under bogus GIT_INDEX_FILE -> exit 0 on the unchanged tree" "0" "$rc20"
+
+# ===================================================================================
 echo ""
 echo "=================================================================="
 echo "$NPASS/$N PASS"
