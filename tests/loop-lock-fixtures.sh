@@ -347,6 +347,130 @@ assert_eq "(M) A3-reintroducing mutant wrongly reclaims a dead-pid fresh-lease l
 assert_eq "(M) real script exits 3 on the identical scenario — scenario 2 kills this mutant" "3" "$rcM_real"
 
 # ===================================================================================
+# Bench round 1 additions (run-30 A3, additive only — everything above untouched).
+# Scenarios 14-16 close TEST_HONESTY's E3 exit-4 blocker and pin the two
+# adversary-specified SECURITY notes on lease_age_seconds (unreadable mtime,
+# future-dated/clock-skew mtime).
+# ===================================================================================
+
+# ===================================================================================
+# Scenario 14 (E3 exit-4 reclaim-race, TEST_HONESTY blocker): the post-reclaim
+# mkdir-failure path was untested — a mutant deleting the `exit 4` line survived
+# the round-0 corpus. Two receipts:
+#   (a) STRUCTURAL — the acquire branch text contains an `exit 4` (same
+#       grep-level pattern as scenario 11's is_alive/kill-0 structural check).
+#   (b) FORCED RACE — a PATH-shimmed `mkdir` that always fails deterministically
+#       simulates "lost the reclaim race" (another process's mkdir won, or a
+#       filesystem refusal) without any OS-specific permission trick: a
+#       read-only-parent-directory approach is flaky under root-run CI, where
+#       permission bits are frequently bypassed entirely, so it is NOT used
+#       here. The lock dir is set up with the real mkdir/touch/backdate before
+#       the shimmed PATH is applied to the script's own invocation only.
+# mutation-honesty: (a) kills a mutant that strips the `exit 4` line (falling
+# through to whatever exit status bash produces next — likely 0, the prior
+# mkdir's success). (b) kills a mutant that treats a failed post-reclaim mkdir
+# as success (e.g. drops the `if` guard and always prints "lock acquired"),
+# which would silently hand the lock to two processes at once.
+# ===================================================================================
+acquire_block_14="$(awk '/^  acquire\)/{flag=1} flag{print} /^  refresh\)/{if(flag)exit}' "$SCRIPT")"
+assert_eq "(14a) acquire branch contains an 'exit 4' fail-closed path (structural receipt)" "true" \
+  "$(printf '%s' "$acquire_block_14" | grep -q 'exit 4' && echo true || echo false)"
+
+r14="$(new_repo s14)"
+(cd "$r14" && "$SCRIPT" acquire "$DEAD_PID" >/dev/null)
+backdate "$(lock_dir "$r14")/lease" 7200   # stale under default TTL -> reclaim will be attempted
+mkdir_shim14="$WORK/mkdir-shim-14"
+mkdir -p "$mkdir_shim14"
+cat > "$mkdir_shim14/mkdir" <<'EOF'
+#!/usr/bin/env bash
+# Always fails, regardless of arguments — deterministic "lost the reclaim
+# race" simulation. Only shadows `mkdir` for the single shimmed invocation
+# below; fixture setup above used the real mkdir.
+exit 1
+EOF
+chmod +x "$mkdir_shim14/mkdir"
+err14="$WORK/err14.txt"
+(cd "$r14" && PATH="$mkdir_shim14:$PATH" "$SCRIPT" acquire 4001 >/dev/null 2>"$err14"); rc14=$?
+assert_eq "(14b) forced post-reclaim mkdir failure -> exit 4 (lost the race, fail closed)" "4" "$rc14"
+assert_eq "(14b) stderr names the failed-reclaim condition" "true" \
+  "$(grep -q 'failed to acquire lock after stale reclaim' "$err14" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 15 (SECURITY note 1): unreadable lease mtime must refuse (exit 4),
+# never be silently treated as 0 -> maximally-stale -> fail-open reclaim.
+# Simulated deterministically via a PATH-shimmed `stat` that EXITS 0 WITH EMPTY
+# STDOUT for every invocation (both the BSD `-f %m` and GNU `-c %Y` forms
+# resolve to this shim). A shim that instead makes `stat` FAIL (nonzero exit)
+# was deliberately rejected: `mtime_of`'s `stat -f ... || stat -c ...` is the
+# LAST command in its function body, run inside the command-substitution
+# subshell backing `m="$(lease_reference_mtime)"` — under `set -e`, both stat
+# forms failing trips `set -e` inside that subshell BEFORE this script's own
+# `[[ "$m" =~ ... ]]` guard ever runs (verified empirically: an
+# always-exit-1 stat shim yields exit 1 from the raw stat failure, not exit 4
+# from the guard). An exit-0-empty-output shim is what actually reaches and
+# exercises the guard, so that is what is used.
+# mutation-honesty: kills a mutant that removes/weakens the
+# `[[ "$m" =~ ^[0-9]+$ ]] || { ...; exit 4; }` guard, letting
+# `$((now - m))` silently treat empty/garbage as 0 and report a fully-stale
+# lease ripe for fail-open reclaim.
+# ===================================================================================
+r15="$(new_repo s15)"
+(cd "$r15" && "$SCRIPT" acquire "$LIVE_PID" >/dev/null)
+stat_shim15="$WORK/stat-shim-15"
+mkdir -p "$stat_shim15"
+cat > "$stat_shim15/stat" <<'EOF'
+#!/usr/bin/env bash
+# Always succeeds, always silent — simulates an mtime read that resolves to
+# nothing (unreadable/garbage), NOT a stat failure (a failure trips set -e
+# inside mtime_of's subshell before this script's own guard ever runs — see
+# the scenario 15 comment above).
+exit 0
+EOF
+chmod +x "$stat_shim15/stat"
+err15="$WORK/err15.txt"
+(cd "$r15" && PATH="$stat_shim15:$PATH" "$SCRIPT" acquire 5001 >/dev/null 2>"$err15"); rc15=$?
+assert_eq "(15) unreadable lease mtime -> exit 4 (fail-closed, never a lucky 0-reclaim)" "4" "$rc15"
+assert_eq "(15) stderr is loud about the unreadable mtime" "true" \
+  "$(grep -q 'unreadable lease mtime' "$err15" && echo true || echo false)"
+
+echo ""
+echo "--- mutation-bite receipt: FIX2 guard stripped on a scratch copy reopens the fail-open hole ---"
+mutant15="$WORK/loop-lock.mutant15.sh"
+awk '{ if ($0 ~ /unreadable lease mtime/) print "  :"; else print }' "$SCRIPT" > "$mutant15"
+chmod +x "$mutant15"
+assert_eq "(15 setup) guard-stripped mutant differs from the real script" "false" \
+  "$(cmp -s "$SCRIPT" "$mutant15" && echo true || echo false)"
+r15m="$(new_repo s15m)"
+(cd "$r15m" && "$mutant15" acquire "$LIVE_PID" >/dev/null)
+(cd "$r15m" && PATH="$stat_shim15:$PATH" "$mutant15" acquire 5002 >/dev/null 2>&1); rc15m=$?
+assert_eq "(15 mutation-bite) guard-stripped mutant treats unreadable mtime as 0/max-stale -> exit 0 fail-open reclaim (scratch copy only)" "0" "$rc15m"
+
+# ===================================================================================
+# Scenario 16 (SECURITY note 2): future-dated lease (clock skew) must clamp to
+# age 0, never go negative -> permanently FRESH -> unkillable wedge. Reuses the
+# `backdate` helper with a NEGATIVE seconds-ago argument (epoch = now - (-N) =
+# now + N), which is exactly "touch -t next-year" on the lease marker.
+# mutation-honesty: kills a mutant that drops the `[ "$age" -lt 0 ] && age=0`
+# clamp. A negative age would still satisfy acquire's `age <= ttl` check (so
+# 16a's exit-3 outcome alone would not distinguish clamped-0 from raw-negative)
+# — the LOAD-BEARING assertions are 16b's: status must print exactly "age 0s",
+# never a negative number, and must still say FRESH.
+# ===================================================================================
+r16="$(new_repo s16)"
+(cd "$r16" && "$SCRIPT" acquire "$DEAD_PID" >/dev/null)
+backdate "$(lock_dir "$r16")/lease" -31536000   # ~1 year in the future (clock skew)
+out16a="$(cd "$r16" && "$SCRIPT" acquire 6101 2>&1)"; rc16a=$?
+assert_eq "(16a) future-dated lease -> acquire exit 3 (held, not stale)" "3" "$rc16a"
+out16b="$(cd "$r16" && "$SCRIPT" status)"; rc16b=$?
+assert_eq "(16b) status always exits 0" "0" "$rc16b"
+assert_eq "(16b) status reports lease age exactly 0s (clamped, not negative)" "true" \
+  "$(printf '%s' "$out16b" | grep -q 'lease age 0s' && echo true || echo false)"
+assert_eq "(16b) status reports FRESH" "true" \
+  "$(printf '%s' "$out16b" | grep -q 'FRESH' && echo true || echo false)"
+assert_eq "(16b) status output carries no negative number anywhere" "false" \
+  "$(printf '%s' "$out16b" | grep -Eq -- '-[0-9]' && echo true || echo false)"
+
+# ===================================================================================
 echo ""
 echo "=================================================================="
 echo "$NPASS/$N PASS"

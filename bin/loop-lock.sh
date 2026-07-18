@@ -19,14 +19,19 @@
 # timestamp text to parse, so no malformed-timestamp failure class exists).
 # A lock dir with no lease marker (old-format or corrupt lock) falls back to
 # the lock dir's own mtime, so pre-lease-era locks age out on the same clock
-# instead of wedging forever or being instantly reclaimed.
+# instead of wedging forever or being instantly reclaimed. An unreadable
+# mtime refuses (exit 4) rather than being treated as 0/maximally-stale; a
+# future-dated mtime (clock skew) clamps to age 0 rather than going negative
+# and permanently FRESH (run-30 A3 bench, SECURITY notes 1 and 2).
 #
 # USAGE: bin/loop-lock.sh acquire [pid] | release | status | refresh
 #   acquire [pid]  -> take the lock for pid (default: $PPID). Exit 0 on
 #                     success, 3 if the existing lock's lease age is <= TTL
 #                     (newcomer must no-op — REGARDLESS of recorded-pid
 #                     liveness), 4 if a stale lease could not be reclaimed
-#                     (lost a reclaim race — fail closed).
+#                     (lost a reclaim race) OR the lease clock itself is
+#                     unreadable (mtime resolution failed/garbage) — both
+#                     fail closed, never a lucky 0.
 #   release        -> drop the lock unconditionally. Idempotent: exit 0
 #                     whether or not a lock was present.
 #   status         -> report holder pid, advisory pid-liveness (display
@@ -86,10 +91,24 @@ lease_reference_mtime() {
 }
 
 lease_age_seconds() {
-  local m now
+  local m now age
   m="$(lease_reference_mtime)"
+  # SECURITY (run-30 A3 bench, note 1): if mtime resolution ever yields
+  # empty/non-numeric (both `stat` variants failed or produced garbage),
+  # unguarded arithmetic would treat it as 0 -> age computes as ~now ->
+  # reads as maximally STALE -> fail-open reclaim of a lock we could not
+  # actually measure. Refuse instead: an unreadable clock is never stale.
+  [[ "$m" =~ ^[0-9]+$ ]] || { echo "[loop-lock] unreadable lease mtime — refusing (fail-closed)" >&2; exit 4; }
   now="$(date +%s)"
-  echo $((now - m))
+  age=$((now - m))
+  # SECURITY (run-30 A3 bench, note 2): a future-dated lease (clock skew,
+  # or a lease marker with a mtime ahead of "now") would otherwise compute
+  # a negative age, which is always <= any positive TTL -> permanently
+  # FRESH -> a wedge that never ages out. Clamp to 0: a future-dated lease
+  # reads as "just refreshed" and recovers naturally once the clock (or the
+  # skewed marker) catches up.
+  [ "$age" -lt 0 ] && age=0
+  echo "$age"
 }
 
 resolve_ttl() {
