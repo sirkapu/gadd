@@ -448,6 +448,71 @@ assert_eq "(20) snapshot under bogus GIT_INDEX_FILE == clean snapshot (env neutr
 assert_eq "(20) verify under bogus GIT_INDEX_FILE -> exit 0 on the unchanged tree" "0" "$rc20"
 
 # ===================================================================================
+# Bench repair round 2 additions (additive only — everything above untouched).
+# Scenarios 21-23 pin the r2 DATA_INTEGRITY blocker (assume-unchanged /
+# skip-worktree cloaking) and the SECURITY r2 embedded-repo hardening.
+# ===================================================================================
+
+# ===================================================================================
+# Scenario 21: EXACT DATA_INTEGRITY r2 repro — `git update-index
+# --assume-unchanged` set after snapshot, then tamper. The bit makes status,
+# `diff HEAD`, and `diff --cached` all report the path clean, so components
+# (b)-(d) are byte-identical to the baseline; only the marker states component
+# (`git ls-files -v`, lowercase `h`) can catch the cloak being SET. verify must
+# exit 2. Pre-fix this exited 0 (the hole, empirically reproduced).
+# mutation-honesty: kills a mutant that drops component (f) (`git ls-files -v`)
+# from the fingerprint, blind to the assume-unchanged cloaking move.
+# ===================================================================================
+r21="$(new_repo s21)"
+fp21="$(cd "$r21" && "$SCRIPT" snapshot)"
+git -C "$r21" update-index --assume-unchanged alpha.txt
+printf 'TAMPERED behind assume-unchanged\n' > "$r21/alpha.txt"
+err21="$WORK/err21.txt"
+(cd "$r21" && "$SCRIPT" verify "$fp21" >/dev/null 2>"$err21"); rc21=$?
+assert_eq "(21) assume-unchanged set after snapshot + tamper -> exit 2 (DI r2 blocker)" "2" "$rc21"
+assert_eq "(21) stderr carries the loud MISMATCH line (cloaked path is invisible to status/diff — the fingerprint delta itself is the receipt)" "true" \
+  "$(grep -q 'TREE FINGERPRINT MISMATCH' "$err21" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 22: skip-worktree variant of the same cloak — `git update-index
+# --skip-worktree` set after snapshot, then tamper (uppercase `S` marker in
+# `ls-files -v`). verify must exit 2. Pre-fix exited 0.
+# mutation-honesty: kills a mutant that fingerprints only the assume-unchanged
+# marker (e.g. greps for lowercase entries) instead of hashing the full
+# ls-files -v output — the sibling bit would slip through.
+# ===================================================================================
+r22="$(new_repo s22)"
+fp22="$(cd "$r22" && "$SCRIPT" snapshot)"
+git -C "$r22" update-index --skip-worktree alpha.txt
+printf 'TAMPERED behind skip-worktree\n' > "$r22/alpha.txt"
+(cd "$r22" && "$SCRIPT" verify "$fp22" >/dev/null 2>&1); rc22=$?
+assert_eq "(22) skip-worktree set after snapshot + tamper -> exit 2" "2" "$rc22"
+
+# ===================================================================================
+# Scenario 23: untracked EMBEDDED GIT REPO pre-existing at snapshot time —
+# `ls-files -o` emits it as a single undescended `dir/` entry, behind which
+# inner mutations would be invisible. Hardening: a directory entry in the
+# untracked enumeration is a hard measurement failure — snapshot AND verify
+# exit 2 (CANNOT MEASURE), never a silent blind spot. (Verified on the real
+# gadd tree before adopting the strict variant: `git ls-files -o` emits zero
+# directory entries there — no embedded repos under reports/ or anywhere else.)
+# mutation-honesty: kills a mutant that hashes the `dir/` entry as a path-only
+# token and exits 0, silently fingerprinting an embedded repo it cannot see
+# into.
+# ===================================================================================
+r23="$(new_repo s23)"
+git init -q "$r23/inner"
+printf 'inner payload\n' > "$r23/inner/inner.txt"
+err23="$WORK/err23.txt"
+(cd "$r23" && "$SCRIPT" snapshot >/dev/null 2>"$err23"); rc23a=$?
+assert_eq "(23) snapshot with pre-existing embedded repo -> exit 2 (CANNOT MEASURE)" "2" "$rc23a"
+assert_eq "(23) stderr names the directory entry (inner)" "true" \
+  "$(grep -q 'inner' "$err23" && echo true || echo false)"
+zeros23="$(printf '0%.0s' $(seq 1 64))"
+(cd "$r23" && "$SCRIPT" verify "gadd-bench-fp-v1:$zeros23" >/dev/null 2>&1); rc23b=$?
+assert_eq "(23) verify with pre-existing embedded repo -> exit 2 (never a lucky pass)" "2" "$rc23b"
+
+# ===================================================================================
 echo ""
 echo "=================================================================="
 echo "$NPASS/$N PASS"

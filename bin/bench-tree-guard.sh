@@ -15,7 +15,8 @@
 #      included via default settings) — catches staged / unstaged / untracked /
 #      deleted path-level changes.
 #   c. worktree-vs-HEAD content of tracked modifications
-#      (`git diff HEAD --binary`) — catches content deltas, not just paths.
+#      (`git diff HEAD --binary`) — catches content deltas, not just paths
+#      (modulo the pre-set-bit residual disclosed below).
 #   d. index-vs-HEAD content (`git diff --cached --binary`) — catches a
 #      poisoned INDEX behind a restored worktree: stage vX then revert the
 #      worktree to HEAD content and (b)+(c) are identical for every X; only
@@ -35,6 +36,14 @@
 #      else only a type marker. Git itself never enumerates FIFOs/sockets/
 #      devices (`ls-files -o` skips non-regular files), so their mere presence
 #      is invisible to any git-based fingerprint — disclosed, not pretended.
+#      A DIRECTORY entry in this enumeration (only an embedded git repo
+#      produces one — ls-files -o fully descends everything else) is a hard
+#      measurement failure, see the limitations below.
+#   f. tracked-file marker states (`git ls-files -v -z`) — carries the
+#      lowercase `h` (assume-unchanged) / `S` (skip-worktree) markers, so
+#      SETTING either bit after snapshot changes the fingerprint even though
+#      status and both diffs go blind to the marked path (bench r2
+#      DATA_INTEGRITY blocker): the cloak itself trips the wire.
 #
 # TRUTH-ONLY LIMITATIONS (disclosed):
 #   - This is a state fingerprint compared at two points in time. A transient
@@ -42,6 +51,18 @@
 #     to it. The gate-matrix prohibition (bench members never write any
 #     tracked path, even transiently) covers that case — the guard detects
 #     residue at return time; it does not replace the rule.
+#   - An assume-unchanged / skip-worktree bit already set BEFORE snapshot
+#     hides subsequent content changes to that path from every git read this
+#     guard uses. Setting a bit mid-round is caught by component (f); a
+#     pre-set bit is an environmental precondition — a compromised dispatcher
+#     tree — not something an adversary can establish mid-round without
+#     tripping the wire.
+#   - An untracked directory that is itself a git repo is emitted by
+#     `ls-files -o` as a single undescended `dir/` entry — inner mutations
+#     would be invisible behind it. Enumeration hitting a directory entry is
+#     therefore treated as a hard measurement failure (CANNOT MEASURE,
+#     exit 2), never a silent blind spot: clear the embedded repo out of the
+#     dispatcher tree before benching.
 #   - Latent, for reuse elsewhere: content flows through git's diff/status
 #     machinery, so changes that .gitattributes/EOL normalization erases from
 #     a diff are fingerprinted as git sees them, not byte-for-byte; and
@@ -105,11 +126,15 @@ sha256_stream() {
 # Prints the bare 64-hex fingerprint body on stdout; nonzero on ANY
 # measurement failure (caller fails closed — never a partial fingerprint).
 compute_fingerprint() {
-  local head_id status_hash worktree_hash index_hash untracked_hash
+  local head_id status_hash worktree_hash index_hash marks_hash untracked_hash
   head_id="$(g rev-parse --verify HEAD 2>/dev/null)" || return 1
   status_hash="$(g status --porcelain=v1 -z 2>/dev/null | sha256_stream)" || return 1
   worktree_hash="$(g diff HEAD --binary 2>/dev/null | sha256_stream)" || return 1
   index_hash="$(g diff --cached --binary 2>/dev/null | sha256_stream)" || return 1
+  # Marker states: assume-unchanged (`h`) / skip-worktree (`S`) bits make
+  # status and both diffs report a path clean, so the bits themselves must be
+  # part of the fingerprint — setting one mid-round is the cloaking move.
+  marks_hash="$(g ls-files -v -z 2>/dev/null | sha256_stream)" || return 1
   # Untracked content, ignored files included: null-delimited path list with
   # NO exclude processing, sorted under the pinned locale, each entry emitted
   # as path + type + content hash into one stream. Non-regular entries are
@@ -126,6 +151,13 @@ compute_fingerprint() {
           if [ -L "$TOPLEVEL/$path" ]; then
             printf 'symlink\0'
             printf '%s' "$(readlink "$TOPLEVEL/$path")" | sha256_stream || exit 9
+          elif [ -d "$TOPLEVEL/$path" ]; then
+            # Only an embedded git repo makes ls-files -o emit a directory
+            # entry (everything else is fully descended); its inner state
+            # cannot be fingerprinted from out here — hard measurement
+            # failure, never a silent blind spot.
+            echo "[bench-tree-guard] untracked enumeration emitted a DIRECTORY entry ('$path') — an embedded git repo ls-files -o will not descend into; inner mutations would be invisible — hard measurement failure (fail-closed)." >&2
+            exit 9
           elif [ -f "$TOPLEVEL/$path" ]; then
             printf 'file\0'
             sha256_stream < "$TOPLEVEL/$path" || exit 9
@@ -135,8 +167,8 @@ compute_fingerprint() {
         done \
       | sha256_stream
   )" || return 1
-  printf 'head:%s\nstatus:%s\ndiff:%s\nindex:%s\nuntracked:%s\n' \
-    "$head_id" "$status_hash" "$worktree_hash" "$index_hash" "$untracked_hash" | sha256_stream
+  printf 'head:%s\nstatus:%s\ndiff:%s\nindex:%s\nmarks:%s\nuntracked:%s\n' \
+    "$head_id" "$status_hash" "$worktree_hash" "$index_hash" "$marks_hash" "$untracked_hash" | sha256_stream
 }
 
 cmd_snapshot() {

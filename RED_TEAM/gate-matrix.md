@@ -30,8 +30,9 @@ correlated verdicts. The bench's value is uncorrelated failure detection, not pe
 prose. (Origin of this rule: `docs/rejection-ledger.md`.)
 
 Adversaries are READ-ONLY in the strong sense (ratified 2026-07-15; tightened
-2026-07-17): never `git checkout`/`switch`/`reset` or anything that mutates the shared
-working tree or moves HEAD — inspect other revisions via `git show <ref>:<path>` /
+2026-07-17): never `git checkout`/`switch`/`reset`/`update-index` (incl. its
+assume-unchanged / skip-worktree bits) or anything that mutates the shared working tree,
+the index, or moves HEAD — inspect other revisions via `git show <ref>:<path>` /
 `git diff` only. Bench members NEVER write ANY tracked path, even transiently — a
 self-reverted edit is still a violation, and any adversary output derived from mutating
 the tracked tree is void. Executed mutation tests an adversary needs (e.g. TEST_HONESTY)
