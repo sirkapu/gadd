@@ -25,6 +25,45 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #29 DECLARED (2026-07-17 system clock; FRESH SESSION per the
+  run-28 chain-live close; lock acquired pid 62232; heartbeat at declaration:
+  16.7% of ceiling, measured):** bootstrap observations — (a) origin/main ==
+  `145eb77` verified live (`git ls-remote`); local main `24c24bc` exactly 1
+  lantern commit ahead (run-28 chain-live), unpushed, rides the next operator
+  push per standing practice. (b) HEAD==main verified at `24c24bc` (standing
+  branch-cut ruling). (c) No open operator buttons (run-28 chain live, origin
+  CI all green per the prior close). (d) Untracked `reports/` still present
+  (operator-side artifacts, run-22 observation standing) — left untouched.
+  Plan by leverage (operator directive pins the first pick): (1) A1 BENCH
+  SCRATCH-COPY MUTATION-DISCIPLINE — FIRST PICK, declared MAJOR (RED_TEAM/**
+  grader change; "Changes here are Major" per RED_TEAM/CLAUDE.md; governed
+  fence → designed gate CRITICAL pre-accept, post-merge accept = operator's
+  own hands per the standing custody ruling). Root cause pinned by read-only
+  audit this session: `RED_TEAM/gate-matrix.md:32-36` currently PERMITS
+  in-tree mutation ("Mutation tests … must restore the exact prior state and
+  verify it with `git status` before returning") — the run-28 incident
+  adversary was arguably compliant with that letter; the five
+  `adapters/cc/agents/gadd-rt-*.md` carry unrestricted `tools: … Bash` with
+  read-only in prose only; and NO deterministic mechanism detects a mid-bench
+  tracked-tree write (every check diffs committed ranges; the receipts
+  porcelain count is informational and point-in-time). Spec: (i) gate-matrix
+  isolation ¶ rewritten — bench members NEVER write any tracked path, even
+  transiently; executed mutation tests ONLY on scratch copies under mktemp
+  outside the tracked tree (the repo's own tests/heartbeat-fixtures.sh
+  pattern); the dispatcher MUST snapshot the tree fingerprint immediately
+  before bench dispatch and verify identity after each adversary returns —
+  any delta voids the round, fail-closed; (ii) new instrument
+  `bin/bench-tree-guard.sh` (`snapshot` → deterministic fingerprint of
+  tracked-tree state; `verify <fp>` → exit 0 identical / exit 2 on delta OR
+  cannot-measure, loud, names changed paths); (iii)
+  `tests/bench-guard-fixtures.sh` corpus w/ mutation-bite receipts (CI globs
+  tests/*.sh — new suite runs on origin automatically, no workflow edit);
+  (iv) one echo discipline line in each of the five adapter agent files.
+  Monotonic tightening (revokes a permission, adds a guard) — Ratifier
+  item-6 L-class candidate. Full bench (Major). Surface 8 files, exactly one
+  fence path. (2) A2 swallowed-error hardening candidate + standing queues,
+  as budget allows.
+
 - **2026-07-17 (system clock) · RUN-28 CHAIN LIVE ON ORIGIN (operator: accept
   own-hands, then "push"):** the operator executed the prepared accept with
   their own hands (`145eb77`, "gadd: accept e18ce5b" — third accept under the
