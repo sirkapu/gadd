@@ -29,11 +29,21 @@ the code: one context has one set of blind spots, and role-played "adversaries" 
 correlated verdicts. The bench's value is uncorrelated failure detection, not persona
 prose. (Origin of this rule: `docs/rejection-ledger.md`.)
 
-Adversaries are READ-ONLY in the strong sense (ratified 2026-07-15): never `git
-checkout`/`switch`/`reset` or anything that mutates the shared working tree or moves
-HEAD — inspect other revisions via `git show <ref>:<path>` / `git diff` only. Mutation
-tests an adversary needs (e.g. TEST_HONESTY) must restore the exact prior state and
-verify it with `git status` before returning.
+Adversaries are READ-ONLY in the strong sense (ratified 2026-07-15; tightened
+2026-07-17): never `git checkout`/`switch`/`reset`/`update-index` (incl. its
+assume-unchanged / skip-worktree bits) or anything that mutates the shared working tree,
+the index, or moves HEAD — inspect other revisions via `git show <ref>:<path>` /
+`git diff` only. Bench members NEVER write ANY tracked path, even transiently — a
+self-reverted edit is still a violation, and any adversary output derived from mutating
+the tracked tree is void. Executed mutation tests an adversary needs (e.g. TEST_HONESTY)
+run ONLY on scratch copies under `mktemp` OUTSIDE the tracked tree; the tracked tree is
+never the mutation substrate. The gate runner records a tree fingerprint immediately
+before dispatching the bench and verifies it as each adversary returns; any delta voids
+the bench round, fail-closed. Reference implementation in gadd itself:
+[bin/bench-tree-guard.sh](../bin/bench-tree-guard.sh) — deployments without the
+instrument still owe the before/after verification by equivalent means. Truth-only
+honesty: the guard detects residue at return time — a transient self-reverted write is
+invisible to it; the prohibition itself, not the guard, covers that case.
 
 ## Model mapping (Phase 0 orchestration)
 
