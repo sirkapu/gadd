@@ -64,6 +64,38 @@ Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to
   fence path. (2) A2 swallowed-error hardening candidate + standing queues,
   as budget allows.
 
+- **mission-loop run #29 DECLARED (2026-07-17 system clock; FRESH SESSION per the
+  run-28 chain-live close; lock acquired pid 77809 after reclaiming stale pid
+  62232 dead; heartbeat at declaration: 18.6% of ceiling, measured):** bootstrap
+  observations — (a) origin/main == `24c24bc` verified live (`git ls-remote`);
+  local main == origin, FULLY SYNCED, zero unpushed commits. (b) HEAD==main
+  verified at `24c24bc` (standing branch-cut ruling). (c) No open operator
+  buttons (run-28 chain live, origin CI all green per the prior close).
+  (d) Untracked `reports/` still present (operator-side artifacts, run-22
+  observation standing) — left untouched. (e) Both `02-lane-violation.sh`
+  copies byte-identical at declaration (`87ddc7e2`), matching the run-28 pin.
+  Plan by leverage (first pick = operator directive, remainder from the
+  ratified rolled queue, nothing new): (1) A1 BENCH MUTATION-DISCIPLINE —
+  FIRST PICK per the operator's run-28 directive (verbatim intent: "a bench
+  member writing to the tracked tree, even transiently and self-reverted, is
+  an isolation-breach class I want closed before the next Major runs a
+  bench"), declared MAJOR (grader/bench-contract change, always Major; both
+  files under the `RED_TEAM/**` governed fence → designed gate CRITICAL
+  pre-accept, post-merge accept = operator's own hands per the standing
+  custody ruling). Root cause pinned: `RED_TEAM/gate-matrix.md` isolation
+  rule's final sentence LICENSES transient tracked-tree mutation ("must
+  restore the exact prior state and verify it with `git status` before
+  returning") — exactly the clause the run-28 A1 anomaly rode. Scope:
+  replace that license with SCRATCH-COPY-ONLY discipline (mutants applied
+  only to copies outside the tracked tree; any write to a tracked path, even
+  self-reverted, = isolation breach invalidating the round; gate runner
+  snapshots `git status --porcelain` pre-bench and re-verifies post-bench
+  before admitting verdicts — codifying the run-28 Director practice) +
+  one reinforcing line in `RED_TEAM/TEST_HONESTY.md`. Wording-only monotonic
+  tightening of adversary license; no verdict semantics, triggers, or tiers
+  altered; full bench (Major). (2) A2 swallowed-error hardening candidate ·
+  standing queues, as budget allows.
+
 - **2026-07-17 (system clock) · RUN-28 CHAIN LIVE ON ORIGIN (operator: accept
   own-hands, then "push"):** the operator executed the prepared accept with
   their own hands (`145eb77`, "gadd: accept e18ce5b" — third accept under the
