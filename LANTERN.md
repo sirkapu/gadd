@@ -25,6 +25,31 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #30 DECLARED (2026-07-18 system clock; FRESH SESSION per
+  the run-29 chain-live close; heartbeat at declaration: 21.1% of ceiling,
+  measured):** bootstrap observations — (a) loop lock was held by DEAD pid
+  15867 (the terminated run-29 resumption session); stale-reclaimed and
+  acquired with THIS session's long-lived pid 54577 (claude process, verified
+  alive) per the run-29 live-pid remedy — the very transient-pid staleness
+  A3 will retire is disclosed once more in passing. (b) origin/main ==
+  `43d896c` verified live (`git ls-remote`); local main `fa8601a` exactly 1
+  lantern commit ahead (run-29 chain-live), unpushed, rides the next operator
+  push per standing practice. (c) HEAD==main at `fa8601a` (standing
+  branch-cut ruling). (d) No open operator buttons (run-29 chain live, origin
+  CI all green per the prior close). (e) Untracked `reports/` still present
+  (operator-side artifacts, run-22 observation standing) — left untouched.
+  Plan = the ratified run-30 order, verbatim: (1) TEST_HONESTY.md scratch-copy
+  echo line — Trivial per operator ratification, FIRST; RED_TEAM/** grader
+  lane so the edit is the Director's (executors/Fixer barred), deterministic
+  gate + full suites + always-on CONTRACT_FIDELITY (RED_TEAM/** is a
+  governed contract path per OWNERSHIP.md; "always-on triggers can never be
+  skipped, whatever the tier"), Ratifier packet, designed fence CRITICAL →
+  post-merge accept = operator's own hands. (2) A3 loop-lock lease hardening
+  (Standard/Trivial, bin/** lane; ratified spec: timestamped lease refreshed
+  at phase boundaries, stale = lease age past threshold, NEVER pid-death
+  alone; first execution flagged in morning brief + next retro). (3) A2
+  swallowed-error hardening → standing queues, budget permitting.
+
 - **mission-loop run #29 CHAIN LIVE ON ORIGIN (2026-07-18 system clock; same
   resumption session):** operator executed the accept with their own hands
   (`43d896c`, "gadd: accept 08b2d81" — FOURTH accept under the custody
