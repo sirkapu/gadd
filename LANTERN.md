@@ -25,6 +25,28 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #31 DECLARED (2026-07-19 system clock; fresh session;
+  heartbeat at declaration 16.9% of ceiling, measured):** bootstrap
+  observations — (a) lock was FREE at start (run-30 released clean);
+  first acquire took the default transient-shell pid 9216 (the A3 flaw,
+  disclosed once more — its fix sits unmerged on `mission/run-30-loop-lease`),
+  re-acquired via the script's own stale-reclaim path with THIS session's
+  long-lived claude pid 8462, verified alive. (b) origin/main == `43d896c`
+  verified live (`git ls-remote`); local main `a2cbb68` exactly 3 lantern
+  commits ahead (run-29 chain-live + run-30 declare/close), unpushed, rides
+  the next operator push. (c) HEAD==main, tree clean except untracked
+  `reports/` (standing, left untouched). (d) Two run-30 MERGE-READY branches
+  at the operator's buttons, unchanged and retained (`221f5d4` th-echo,
+  `340a6bc` loop-lease); no operator reply yet — they stay parked, work
+  continues per night mode. Plan = ratified run-31 order: (1) A2
+  swallowed-error hardening FIRST PICK (Major — gate change; both
+  `02-lane-violation.sh` copies byte-identical `87ddc7e2` at declaration;
+  root cause pinned: `2>/dev/null || true` swallows at the jq type-probe
+  sites fabricate blank-typed CRITICAL messages, and at the `git show`
+  trust-anchor reads make transient git failure indistinguishable from
+  file-absent — silent ENROLLED→LEGACY degrade, fail-open on the signature
+  factor) → (2) standing queues, budget permitting.
+
 - **mission-loop run #30 CLOSE (same session; 2 items completed, both
   MERGE-READY; heartbeat at close prep 37.9% of ceiling, measured):**
   ITEM 1 (Trivial, operator-ratified) — `mission/run-30-th-echo` tip
