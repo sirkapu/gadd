@@ -974,12 +974,21 @@ EOF
 chmod +x "$GITSHIM_DIR/git"
 
 # Extract the pre-THIS-fix check-02 (run-31 A2's own starting point, the
-# current main tip) for the both-direction receipts below -- DIFFERENT from
-# OLD_CHECK02_REF (44f09ed, the pre-run-21 ancient version used by the
-# S2/S3/S4/S5/S7 red-run table above). Per the run-31 A2 mission brief:
-# "obtain via `git show main:.gadd/checks/02-lane-violation.sh` into a
-# scratch copy".
-PREFIX_CHECK02_REF="${PREFIX_CHECK02_REF:-main}"
+# origin/main tip at the time this repair round started) for the
+# both-direction receipts below -- DIFFERENT from OLD_CHECK02_REF (44f09ed,
+# the pre-run-21 ancient version used by the S2/S3/S4/S5/S7 red-run table
+# above). Per the run-31 A2 mission brief: "obtain via `git show
+# main:.gadd/checks/02-lane-violation.sh` into a scratch copy" -- pinned to
+# a full 40-char commit SHA rather than the bare ref `main` (repair round 1,
+# REGRESSION fix): in CI (actions/checkout@v4, detached HEAD, pull_request)
+# only `origin/main` exists locally, not a bare `main` ref, so the bare
+# default fatal-exited the suite after S21 in that environment. Verified
+# (2026-07-19): this SHA resolves to origin/main, and
+# `git show 43d896c187eaefa78bfe3ed5e767b0d68e03510c:.gadd/checks/02-lane-violation.sh`
+# hashes to 87ddc7e2790669995383fb677b5300733c63bbeb (sha1) -- the pre-fix
+# blob S22/S24's prefix-run receipts require to reproduce the swallowed
+# blank-type message and the fail-open LEGACY degrade.
+PREFIX_CHECK02_REF="${PREFIX_CHECK02_REF:-43d896c187eaefa78bfe3ed5e767b0d68e03510c}"
 PREFIXDIR="$OUT/prefixcheck"; mkdir -p "$PREFIXDIR/lib"
 if ! git -C "$REPO_ROOT" show "$PREFIX_CHECK02_REF:.gadd/checks/02-lane-violation.sh" > "$PREFIXDIR/02-lane-violation.sh" \
     || [ ! -s "$PREFIXDIR/02-lane-violation.sh" ]; then
@@ -1159,6 +1168,90 @@ else
   fail "(S26) R3: the ratchet rule's 'emptied/deleted' message does NOT fire for a read failure" \
     "found the ratchet message in: $(cat "$OUT/s26.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
 fi
+
+# ===================================================================================
+# S27 (run-31 A2 repair round 1, G2): drives the genuinely-MISSING (not
+# corrupt) tree-object boundary G1 above hardens against, with a REAL git
+# object-store deletion -- not a PATH-shim simulation like S22-S26. ENROLLED
+# shape (mk_enrolled_repo); the BASE commit's "gadd" subtree loose object is
+# deleted from .git/objects. gadd/BASELINE.json and gadd/allowed_signers
+# both live directly under "gadd/" and therefore share exactly ONE tree
+# object -- there is no way to corrupt the anchor for one without also
+# corrupting the other's.
+#
+# MEASURED (bash -x trace against both script versions, same fixture):
+# git_read_trust_anchor's OWN classification IS correctly hardened by G1 --
+# signers_base_status flips from "absent" (pre-G1, de7139b) to "unreadable"
+# (post-G1) for the IDENTICAL corrupted object, exactly as designed, and
+# baseline_status flips the same way. BUT neither classification is ever
+# acted on for this fixture: accept_touched (this file's own
+# baseline_touched / signers_touched, `git log "$BASE".."$HEAD" -- gadd/...`)
+# and the generic governed-fence fallback (changed_files/deleted_files in
+# lib/common.sh) independently read the SAME corrupted "gadd" subtree via
+# UNGUARDED git log/git diff invocations (no `2>/dev/null`, no rc check --
+# pre-existing, untouched by R1/R2/R3/G1). Git's tree-diff machinery cannot
+# determine "did commit X touch gadd/BASELINE.json" without resolving
+# BASE's own version of that path, so those calls fail the identical way,
+# silently return empty, accept_touched never becomes 1, and the generic
+# fallback's viol list also stays empty. BOTH the pre-G1 and post-G1 script
+# therefore exit 0 with ZERO findings for this fixture -- worse than the
+# LEGACY degrade G1 targeted (a TOTAL silent bypass, no nudge at all).
+#
+# DISCLOSED GAP (out of this repair round's ratified scope -- the Director
+# ruled G1 to git_read_trust_anchor specifically, "apply exactly these,
+# nothing else"): a genuinely missing/corrupted "gadd" subtree object at the
+# accepted base is NOT fail-closed end-to-end even after this repair round,
+# because baseline_touched/signers_touched/changed_files/deleted_files share
+# the identical unguarded-git-read swallow G1 closed only inside
+# git_read_trust_anchor. Flagged here for a future ratified round rather
+# than silently fixed or silently assumed fixed; this fixture PINS the
+# current (undesirable) both-versions-identical behavior so it stays
+# visible instead of being papered over.
+# ===================================================================================
+PRE_G1_CHECK02_REF="${PRE_G1_CHECK02_REF:-de7139b6ec64b351a31a4b00cc3057d1b80d178e}"
+PREG1DIR="$OUT/preg1check"; mkdir -p "$PREG1DIR/lib"
+if ! git -C "$REPO_ROOT" show "$PRE_G1_CHECK02_REF:.gadd/checks/02-lane-violation.sh" > "$PREG1DIR/02-lane-violation.sh" \
+    || [ ! -s "$PREG1DIR/02-lane-violation.sh" ]; then
+  echo "FATAL: cannot extract pre-G1 check-02 at $PRE_G1_CHECK02_REF -- S27 both-direction receipt cannot run" >&2
+  exit 1
+fi
+cp "$LIB_COMMON" "$PREG1DIR/lib/common.sh"
+PRE_G1_CHECK02="$PREG1DIR/02-lane-violation.sh"
+run_pre_g1_check02() { run_a_check "$PRE_G1_CHECK02" "$@"; }
+
+r27="$WORK/s27"
+GEN27="$(mk_enrolled_repo "$r27" '["accept@test.local"]' key27 "accept@test.local")"
+bump_baseline "$r27" "s27head"
+HEAD27="$(accept_commit "$r27" "gadd: accept s27 missing-subtree-object" "accept@test.local" "")"
+GADD27_TREE="$(cd "$r27" && git ls-tree "$GEN27" gadd | awk '{print $3}')"
+GADD27_OBJPATH="$r27/.git/objects/${GADD27_TREE:0:2}/${GADD27_TREE:2}"
+if [ ! -f "$GADD27_OBJPATH" ]; then
+  echo "FATAL (S27): expected loose object $GADD27_OBJPATH not found -- fixture setup assumption (fresh scratch repo, no packs) broke" >&2
+  exit 1
+fi
+rm -f "$GADD27_OBJPATH"
+
+rc="$(run_check02 s27 "$r27" "$GEN27" "$HEAD27")"
+assert_zero "(S27) NEW script does not crash on a missing base subtree object" "$rc"
+assert_ndjson_no_finding "(S27) DISCLOSED GAP: NEW script still produces ZERO findings end-to-end for a missing base 'gadd' subtree object -- git_read_trust_anchor's own read is correctly hardened (bash -x trace: absent -> unreadable, see fix commit body) but accept_touched's separate, unguarded git-log swallow masks it before any finding can fire; closing this is out of this round's ratified scope" \
+  "$OUT/s27.findings.ndjson" "lane-violation"
+
+prefix_s27="$(run_pre_g1_check02 pre-g1-s27 "$r27" "$GEN27" "$HEAD27")"
+assert_zero "(pre-G1-run S27) pre-G1 check-02 (de7139b) does not crash either" "$prefix_s27"
+assert_ndjson_no_finding "(pre-G1-run S27) pre-G1 check-02 ALSO produces ZERO findings -- same masking mechanism, unrelated to G1 -- no visible both-direction bite for this specific fixture (disclosed, not papered over)" \
+  "$OUT/pre-g1-s27.findings.ndjson" "lane-violation"
+
+echo ""
+echo "S27 BOTH-DIRECTION RECEIPT (missing base 'gadd' subtree object, ENROLLED) -- DISCLOSED GAP, not a validated fix"
+printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-G1" "POST-G1"
+printf '%-6s %-58s %-10s %-10s\n' "S27" "missing gadd/ subtree object at accepted base" "$(sev_of "$OUT/pre-g1-s27.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s27.findings.ndjson" lane-violation)"
+echo "S27 NOTE: both columns read 'none' -- the mutation does NOT bite end-to-end for this"
+echo "fixture. git_read_trust_anchor IS correctly hardened in isolation (internal"
+echo "signers_base_status/baseline_status flip absent->unreadable, verified via bash -x"
+echo "trace, not observable through NDJSON findings here); accept_touched's own,"
+echo "separate unguarded git-log swallow masks it. Out of this round's ratified G1/G2"
+echo "scope -- flagged for a future round, see repair-round-1 commit body / report."
+echo ""
 
 # ===================================================================================
 # BOTH-DIRECTION RECEIPT (run-31 A2, R7c): S22 and S24 replayed against the
