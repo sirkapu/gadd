@@ -87,10 +87,106 @@
 # empty stream (jq -e . exit 4, jq -r 'type' would print nothing) is never
 # mistaken for a parsed null/false and can never produce a blank-typed
 # message. Both routes remain CRITICAL fail-closed — no severity changes.
+#
+# SWALLOWED-ERROR HARDENING (run-31, ratified A2, Major tier, run-28 bench
+# anomaly A2): the jq type probes above (jq -r 'type' at the exit-1 branch
+# and the not-object branch, jq -r '.accept_authors | type', and the
+# array-of-strings membership probe) and the four trust-anchor git reads
+# (OWNERSHIP.md, gadd/allowed_signers at base and head, gadd/BASELINE.json
+# at base) all used `2>/dev/null || true` / bare `|| true` to swallow ANY
+# failure -- including a TRANSIENT tool failure, not just the intended
+# "absent / does-not-parse" case. Two consequences: (1) a jq invocation
+# failure at a type probe fell back to an empty string, rendering
+# blank-typed messages ("top level is a JSON , not an object"); (2) a git
+# read failure on a trust anchor was indistinguishable from the anchor
+# being definitively absent, so an ENROLLED deployment silently degraded
+# to the LEGACY path (skipping signature verification entirely) or the
+# OWNERSHIP fence silently downgraded from the base to the working tree.
+#   jq (R1): every type-probe call site now captures jq's OWN exit code
+#   (never `|| true`-discarded) and routes a nonzero rc to a distinct,
+#   explicitly-worded fail-closed CRITICAL ("... (jq failure during ...
+#   probe) -- fail-closed"), never a message built from an empty type
+#   string. The array-of-strings membership probe (jq -e '[...] | all')
+#   distinguishes its own three outcomes: rc=0 all-strings (unchanged
+#   healthy path), rc=1 a genuine non-string member found (unchanged
+#   message), any other rc = jq itself failed (new, distinctly worded).
+#   git (R2/R3): a new git_read_trust_anchor() helper replaces every bare
+#   `git show REF:PATH 2>/dev/null || true` with a two-step, empirically
+#   measured probe (exact exit-code taxonomy in the run-31 A2 feat commit
+#   body): (1) REF must resolve to a commit
+#   (git rev-parse --verify -q "REF^{commit}") or the read is AMBIGUOUS;
+#   (2) given a valid ref, git rev-parse --verify -q "REF:PATH" must
+#   cleanly exit 1 (no stderr) for the path to be DEFINITIVELY ABSENT --
+#   any other exit code (a corrupt tree, a repo-level fatal, etc.) is
+#   AMBIGUOUS; (3) only once existence is confirmed does the real content
+#   read (git show) run, and if THAT still fails despite existence being
+#   confirmed (a corrupt/unreadable BLOB -- invisible to every cheap
+#   existence probe, since none of them read blob content) the read is
+#   AMBIGUOUS too, not absent. "Definitively absent" reproduces the exact
+#   pre-hardening semantics (working-tree OWNERSHIP fallback, LEGACY path,
+#   accept_authors "not set", etc.) unchanged; any AMBIGUOUS outcome is a
+#   new CRITICAL fail-closed finding naming the unreadable path and trust
+#   source, and (inside the accept-verification block) sets accept_bad=1,
+#   short-circuiting the ENROLLED/LEGACY per-commit analysis entirely for
+#   that push rather than attempting it on a known-unreliable read -- a
+#   deliberately conservative simplification (strictly more fail-closed
+#   than a narrower per-check gate, never less). Per R3 this means the
+#   ratchet rule's own "emptied/deleted" message is never reached when it
+#   is specifically the head-signers read that is unreadable -- the
+#   read-failure message fires in its place, and the emptied/deleted
+#   message keeps meaning exactly what it says.
+# Disclosed residual: jq -e 'type == "object"' itself (the boolean check
+# immediately above the type probes) still conflates "ran fine, evaluated
+# false" with "jq itself failed" -- the same swallow shape, but not one of
+# the three probes this hardening's ratified scope named. The code path
+# re-derives the type via the now-hardened jq -r 'type' probe regardless of
+# which of the two ways it got there, so a jq failure at that boolean check
+# can only ever manifest as a (correctly fail-closed) type-probe failure
+# downstream -- never a wrong PASS.
 source "$(dirname "$0")/lib/common.sh"
 
+# git_read_trust_anchor REF PATH -> two-step probe (measured taxonomy in the
+# run-31 A2 feat commit body). Sets GADD_TA_STATUS to present / absent /
+# unreadable, and GADD_TA_CONTENT (meaningful only when present). "absent"
+# reproduces the exact pre-hardening semantics; "unreadable" is a NEW,
+# distinct outcome the caller must fail closed on -- never treat as absent.
+git_read_trust_anchor() {
+  local ref="$1" path="$2" rc
+  GADD_TA_CONTENT=""
+  git rev-parse --verify -q "${ref}^{commit}" >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    GADD_TA_STATUS="unreadable"   # ref itself does not resolve to a commit
+    return
+  fi
+  git rev-parse --verify -q "${ref}:${path}" >/dev/null 2>&1
+  rc=$?
+  if [ "$rc" -eq 1 ]; then
+    GADD_TA_STATUS="absent"       # clean, definitive: valid ref, no such path
+    return
+  fi
+  if [ "$rc" -ne 0 ]; then
+    GADD_TA_STATUS="unreadable"   # e.g. a corrupt tree object mid-walk
+    return
+  fi
+  GADD_TA_CONTENT="$(git show "${ref}:${path}" 2>/dev/null)"
+  if [ $? -ne 0 ]; then
+    GADD_TA_STATUS="unreadable"   # existence confirmed, but the content read
+    GADD_TA_CONTENT=""            # still failed (e.g. a corrupt blob -- no
+    return                        # cheap existence probe reads blob content)
+  fi
+  GADD_TA_STATUS="present"
+}
+
 ownership_source="base"
-ownership_content="$(git show "$GADD_BASE:OWNERSHIP.md" 2>/dev/null || true)"
+git_read_trust_anchor "$GADD_BASE" "OWNERSHIP.md"
+case "$GADD_TA_STATUS" in
+  present) ownership_content="$GADD_TA_CONTENT" ;;
+  unreadable)
+    finding "lane-violation" "CRITICAL" "cannot read OWNERSHIP.md from accepted base $GADD_BASE (ambiguous git read failure, not definitively absent) -- fail-closed, refusing to fall back to the working tree" "OWNERSHIP.md"
+    exit 0
+    ;;
+  absent) ownership_content="" ;;
+esac
 if [ -z "$ownership_content" ]; then
   if [ -f OWNERSHIP.md ]; then
     ownership_source="working-tree (fresh install — accepted base has no OWNERSHIP.md)"
@@ -110,8 +206,10 @@ fi
 # --- accept-signer + accept_authors verification, computed once up front (not
 # per loop-iteration) so gadd/BASELINE.json and gadd/allowed_signers share one
 # outcome when either or both are touched across the commit range. ---
-signers_base="$(git show "$GADD_BASE:gadd/allowed_signers" 2>/dev/null || true)"
-head_signers="$(git show "$GADD_HEAD:gadd/allowed_signers" 2>/dev/null || true)"
+git_read_trust_anchor "$GADD_BASE" "gadd/allowed_signers"
+signers_base_status="$GADD_TA_STATUS"; signers_base="$GADD_TA_CONTENT"
+git_read_trust_anchor "$GADD_HEAD" "gadd/allowed_signers"
+head_signers_status="$GADD_TA_STATUS"; head_signers="$GADD_TA_CONTENT"
 baseline_touched="$(git log --format='%H' "$GADD_BASE".."$GADD_HEAD" -- gadd/BASELINE.json)"
 signers_touched="$(git log --format='%H' "$GADD_BASE".."$GADD_HEAD" -- gadd/allowed_signers)"
 accept_touched=""
@@ -119,20 +217,20 @@ if [ -n "$baseline_touched" ] || [ -n "$signers_touched" ]; then
   accept_touched=1
 fi
 
-base_baseline_content="$(git show "$GADD_BASE:gadd/BASELINE.json" 2>/dev/null || true)"
+git_read_trust_anchor "$GADD_BASE" "gadd/BASELINE.json"
+baseline_status="$GADD_TA_STATUS"; base_baseline_content="$GADD_TA_CONTENT"
 accept_allow=""
 base_baseline_malformed=0
 base_baseline_malformed_msg="does not parse"
 if [ -n "$base_baseline_content" ]; then
   printf '%s' "$base_baseline_content" | jq -e . >/dev/null 2>&1
   base_jq_rc=$?
+  need_type_probe=0
   if [ "$base_jq_rc" -eq 1 ]; then
     # Valid JSON whose single top-level value is the JSON literal null or
     # false (jq -e's ONLY way to exit 1 on the identity filter `.`) — never
-    # a parse failure. Route straight to the type-named message.
-    base_type="$(printf '%s' "$base_baseline_content" | jq -r 'type' 2>/dev/null || true)"
-    base_baseline_malformed=1
-    base_baseline_malformed_msg="top level is a JSON $base_type, not an object"
+    # a parse failure. Route to the type-named message below.
+    need_type_probe=1
   elif [ "$base_jq_rc" -ne 0 ]; then
     # exit 4 (empty/whitespace-only stream — no JSON value produced at all)
     # or 5 (genuine syntax error), or any other nonzero: does not parse.
@@ -141,32 +239,85 @@ if [ -n "$base_baseline_content" ]; then
     # surface a blank-typed message.
     base_baseline_malformed=1
   elif ! printf '%s' "$base_baseline_content" | jq -e 'type == "object"' >/dev/null 2>&1; then
-    base_type="$(printf '%s' "$base_baseline_content" | jq -r 'type' 2>/dev/null || true)"
+    need_type_probe=1
+  fi
+
+  if [ "$need_type_probe" -eq 1 ]; then
+    # jq's OWN exit code is captured here (never `|| true`-discarded, run-31
+    # A2 R1): a genuine jq invocation failure is distinguishable from a
+    # legitimately-empty type string — never rendered as a blank type.
+    base_type="$(printf '%s' "$base_baseline_content" | jq -r 'type' 2>/dev/null)"
+    base_type_rc=$?
     base_baseline_malformed=1
-    base_baseline_malformed_msg="top level is a JSON $base_type, not an object"
-  else
-    aa_type="$(printf '%s' "$base_baseline_content" | jq -r '.accept_authors | type' 2>/dev/null || true)"
-    case "$aa_type" in
-      null) : ;; # absent or null — legitimate not-set, behavior unchanged
-      array)
-        if printf '%s' "$base_baseline_content" | jq -e '[.accept_authors[] | type == "string"] | all' >/dev/null 2>&1; then
-          accept_allow="$(printf '%s' "$base_baseline_content" | jq -r '.accept_authors[]? // empty' 2>/dev/null || true)"
-        else
+    if [ "$base_type_rc" -ne 0 ]; then
+      base_baseline_malformed_msg="cannot determine top-level type of accepted baseline (jq failure during type probe) — fail-closed"
+    else
+      base_baseline_malformed_msg="top level is a JSON $base_type, not an object"
+    fi
+  elif [ "$base_jq_rc" -eq 0 ]; then
+    aa_type="$(printf '%s' "$base_baseline_content" | jq -r '.accept_authors | type' 2>/dev/null)"
+    aa_type_rc=$?
+    if [ "$aa_type_rc" -ne 0 ]; then
+      base_baseline_malformed=1
+      base_baseline_malformed_msg="cannot determine type of .accept_authors in accepted baseline (jq failure during type probe) — fail-closed"
+    else
+      case "$aa_type" in
+        null) : ;; # absent or null — legitimate not-set, behavior unchanged
+        array)
+          printf '%s' "$base_baseline_content" | jq -e '[.accept_authors[] | type == "string"] | all' >/dev/null 2>&1
+          members_rc=$?
+          if [ "$members_rc" -eq 0 ]; then
+            accept_allow="$(printf '%s' "$base_baseline_content" | jq -r '.accept_authors[]? // empty' 2>/dev/null)"
+            if [ $? -ne 0 ]; then
+              base_baseline_malformed=1
+              base_baseline_malformed_msg="cannot extract .accept_authors from accepted baseline (jq failure during extraction) — fail-closed"
+              accept_allow=""
+            fi
+          elif [ "$members_rc" -eq 1 ]; then
+            base_baseline_malformed=1
+            base_baseline_malformed_msg=".accept_authors is an array containing non-string member(s)"
+          else
+            # jq itself failed the membership check (not a clean rc=1 "found
+            # a non-string member") — distinguishable message (run-31 A2 R1).
+            base_baseline_malformed=1
+            base_baseline_malformed_msg="cannot verify .accept_authors array members are strings (jq failure during membership probe) — fail-closed"
+          fi
+          ;;
+        *)
           base_baseline_malformed=1
-          base_baseline_malformed_msg=".accept_authors is an array containing non-string member(s)"
-        fi
-        ;;
-      *)
-        base_baseline_malformed=1
-        base_baseline_malformed_msg=".accept_authors is a $aa_type, not an array of strings"
-        ;;
-    esac
+          base_baseline_malformed_msg=".accept_authors is a $aa_type, not an array of strings"
+          ;;
+      esac
+    fi
   fi
 fi
 
 accept_bad=0
 
 if [ -n "$accept_touched" ]; then
+  anchor_unreadable=0
+  if [ "$baseline_status" = "unreadable" ]; then
+    finding "lane-violation" "CRITICAL" "cannot read gadd/BASELINE.json from accepted base $GADD_BASE (ambiguous git read failure, not definitively absent) — fail-closed" "gadd/BASELINE.json"
+    anchor_unreadable=1
+  fi
+  if [ "$signers_base_status" = "unreadable" ]; then
+    finding "lane-violation" "CRITICAL" "cannot read gadd/allowed_signers from accepted base $GADD_BASE (ambiguous git read failure, not definitively absent) — fail-closed" "gadd/allowed_signers"
+    anchor_unreadable=1
+  fi
+  if [ "$head_signers_status" = "unreadable" ]; then
+    finding "lane-violation" "CRITICAL" "cannot read gadd/allowed_signers from HEAD $GADD_HEAD (ambiguous git read failure, not definitively absent) — fail-closed" "gadd/allowed_signers"
+    anchor_unreadable=1
+  fi
+
+  if [ "$anchor_unreadable" -eq 1 ]; then
+    # run-31 A2 R2/R3: at least one trust-anchor read is AMBIGUOUS (not
+    # definitively absent) — deny the exemption outright rather than run
+    # the ENROLLED/LEGACY per-commit analysis below on a known-unreliable
+    # read. This also means the ratchet rule's "emptied/deleted" message is
+    # never reached when it is specifically the head-signers read that is
+    # unreadable (R3) — the read-failure message above fires in its place.
+    accept_bad=1
+  else
   if [ "$base_baseline_malformed" -eq 1 ]; then
     finding "lane-violation" "CRITICAL" "accepted baseline gadd/BASELINE.json $base_baseline_malformed_msg — cannot verify accept authorship (fail-closed)" "gadd/BASELINE.json"
     accept_bad=1
@@ -255,6 +406,7 @@ if [ -n "$accept_touched" ]; then
         printf '%s\n' "$accept_allow" | grep -qxF "$cae" || { accept_bad=1; break; }
       fi
     done < <(git log --format='%s%x09%ae' "$GADD_BASE".."$GADD_HEAD" -- gadd/BASELINE.json gadd/allowed_signers)
+  fi
   fi
 fi
 
