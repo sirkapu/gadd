@@ -116,8 +116,9 @@
 #   body): (1) REF must resolve to a commit
 #   (git rev-parse --verify -q "REF^{commit}") or the read is AMBIGUOUS;
 #   (2) given a valid ref, git rev-parse --verify -q "REF:PATH" must
-#   cleanly exit 1 (no stderr) for the path to be DEFINITIVELY ABSENT --
-#   any other exit code (a corrupt tree, a repo-level fatal, etc.) is
+#   cleanly exit 1 (no stderr) -- confirmed by a passing `git ls-tree`
+#   probe as of G1 below -- for the path to be DEFINITIVELY ABSENT -- any
+#   other exit code (a corrupt tree, a repo-level fatal, etc.) is
 #   AMBIGUOUS; (3) only once existence is confirmed does the real content
 #   read (git show) run, and if THAT still fails despite existence being
 #   confirmed (a corrupt/unreadable BLOB -- invisible to every cheap
@@ -135,6 +136,24 @@
 #   is specifically the head-signers read that is unreadable -- the
 #   read-failure message fires in its place, and the emptied/deleted
 #   message keeps meaning exactly what it says.
+#   G1 hardening (run-31 A2 repair round 1, SECURITY note): step (2)'s rc=1
+#   alone is NOT sufficient for DEFINITIVELY ABSENT. An empirically measured
+#   taxonomy (mktemp scratch repos; exit-code table in the fix commit body)
+#   showed a genuinely MISSING (not corrupt) tree object -- including a
+#   missing SUBtree object, the shape that matters here since every path
+#   this helper is called with (gadd/allowed_signers, gadd/BASELINE.json) is
+#   a subdirectory path -- ALSO yields rc=1 from
+#   `git rev-parse --verify -q "REF:PATH"`, indistinguishable at that probe
+#   alone from a clean absence; unpatched, this would silently route an
+#   ENROLLED base's signers read to the signature-skipping LEGACY path (a
+#   corrupt tree was already correctly AMBIGUOUS via a different, >=2 exit
+#   code -- it is specifically the MISSING-object rc=1 case this closes).
+#   rc=1 is now provisional: `git ls-tree "$ref" -- "$path"` must ALSO exit 0
+#   before the read is trusted as absent. A missing tree/subtree object
+#   makes ls-tree itself fail nonzero (it must read the tree to answer a
+#   path query), where a genuine absence still exits 0 with empty output --
+#   any ls-tree outcome other than a clean exit 0 reclassifies the read as
+#   AMBIGUOUS (unreadable) instead.
 # Disclosed residual: jq -e 'type == "object"' itself (the boolean check
 # immediately above the type probes) still conflates "ran fine, evaluated
 # false" with "jq itself failed" -- the same swallow shape, but not one of
@@ -145,11 +164,14 @@
 # downstream -- never a wrong PASS.
 source "$(dirname "$0")/lib/common.sh"
 
-# git_read_trust_anchor REF PATH -> two-step probe (measured taxonomy in the
-# run-31 A2 feat commit body). Sets GADD_TA_STATUS to present / absent /
-# unreadable, and GADD_TA_CONTENT (meaningful only when present). "absent"
-# reproduces the exact pre-hardening semantics; "unreadable" is a NEW,
-# distinct outcome the caller must fail closed on -- never treat as absent.
+# git_read_trust_anchor REF PATH -> multi-step probe (measured taxonomy in
+# the run-31 A2 feat commit body and the repair-round-1 fix commit body).
+# Sets GADD_TA_STATUS to present / absent / unreadable, and GADD_TA_CONTENT
+# (meaningful only when present). "absent" reproduces the exact
+# pre-hardening semantics; "unreadable" is a NEW, distinct outcome the
+# caller must fail closed on -- never treat as absent. A missing (not
+# corrupt) tree/subtree object is one of the "unreadable" cases (G1,
+# confirmed via ls-tree), not just a corrupt one.
 git_read_trust_anchor() {
   local ref="$1" path="$2" rc
   GADD_TA_CONTENT=""
@@ -161,8 +183,18 @@ git_read_trust_anchor() {
   git rev-parse --verify -q "${ref}:${path}" >/dev/null 2>&1
   rc=$?
   if [ "$rc" -eq 1 ]; then
-    GADD_TA_STATUS="absent"       # clean, definitive: valid ref, no such path
-    return
+    # G1 (run-31 A2 repair round 1): rc=1 alone is not sufficient -- a
+    # missing (not corrupt) tree/subtree object also yields rc=1 here.
+    # Confirm with ls-tree, which must itself read the tree to answer, so
+    # a missing tree/subtree object makes IT fail nonzero where a genuine
+    # absence still exits 0 with empty output.
+    if git ls-tree "$ref" -- "$path" >/dev/null 2>&1; then
+      GADD_TA_STATUS="absent"     # clean, definitive: valid ref, no such path
+      return
+    else
+      GADD_TA_STATUS="unreadable" # rev-parse rc=1 but ls-tree could not
+      return                      # confirm absence -- fail-closed
+    fi
   fi
   if [ "$rc" -ne 0 ]; then
     GADD_TA_STATUS="unreadable"   # e.g. a corrupt tree object mid-walk
