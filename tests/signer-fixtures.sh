@@ -1283,6 +1283,56 @@ printf '%-6s %-58s %-10s %-10s\n' "S24" "base allowed_signers read failure (fail
 echo ""
 
 # ===================================================================================
+# S28 (run-31 A2, Ratifier receipt iii, defect class 2, 4th wiring): the base
+# OWNERSHIP.md read -- git_read_trust_anchor's FIRST caller, and the ONLY one
+# of the four wirings (OWNERSHIP.md, base allowed_signers/S24, base
+# BASELINE.json/S25, HEAD allowed_signers/S26) not yet pinned -- is forced
+# AMBIGUOUS via GITSHIM_TARGET="$GEN28:OWNERSHIP.md" (rc=2, never 1 -- never
+# mistaken for clean absence), the same shim/corruption technique as
+# S24-S26. Pre-fix, `git show "$GADD_BASE:OWNERSHIP.md" 2>/dev/null || true`
+# silently swallows the failure to an empty string and falls through to the
+# working-tree OWNERSHIP.md fallback -- a path meant ONLY for a genuinely
+# fresh install with nothing accepted yet -- indistinguishable here from an
+# ambiguous base read. Post-fix: CRITICAL fail-closed naming OWNERSHIP.md,
+# script exits 0 per the finding contract, working-tree fallback refused.
+# ===================================================================================
+r28="$WORK/s28"
+GEN28="$(mk_enrolled_repo "$r28" '["accept@test.local"]' key28 "accept@test.local")"
+KEY28="$KEYDIR/key28.pub"
+bump_baseline "$r28" "s28head"
+HEAD28="$(accept_commit "$r28" "gadd: accept s28 base-ownership-unreadable" "accept@test.local" "$KEY28")"
+
+export GITSHIM_TARGET="$GEN28:OWNERSHIP.md"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s28 "$r28" "$GEN28" "$HEAD28" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S28) exit 0" "$rc"
+assert_ndjson_finding "(S28) BLOCKER (4th wiring): base OWNERSHIP.md read failure -> CRITICAL fail-closed, naming OWNERSHIP.md, refusing the working-tree fallback" \
+  "$OUT/s28.findings.ndjson" "lane-violation" "CRITICAL" "cannot read OWNERSHIP.md from accepted base"
+if jq -s -e --arg c "lane-violation" \
+     '[.[] | select(.check==$c and (.severity=="MINOR" or .severity=="MAJOR"))] | length == 0' \
+     "$OUT/s28.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S28) NO working-tree-fallback nudge fires (no fail-open degrade to the working-tree OWNERSHIP.md)"
+else
+  fail "(S28) NO working-tree-fallback nudge fires" \
+    "found a MINOR/MAJOR finding in: $(cat "$OUT/s28.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+export GITSHIM_TARGET="$GEN28:OWNERSHIP.md"
+export GITSHIM_FAILRC=2
+prefix_s28="$(run_prefix_check02 prefix-s28 "$r28" "$GEN28" "$HEAD28" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(prefix-run S28) pre-fix check-02 does not crash" "$prefix_s28"
+assert_ndjson_no_finding "(prefix-run S28) pre-fix check-02 REPRODUCES the silent working-tree fallback: ZERO lane-violation findings (no CRITICAL about OWNERSHIP.md readability) despite the ambiguous base read" \
+  "$OUT/prefix-s28.findings.ndjson" "lane-violation"
+
+echo ""
+echo "S28 BOTH-DIRECTION RECEIPT (base OWNERSHIP.md read failure, 4th wiring, ENROLLED)"
+printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-FIX" "NEW"
+printf '%-6s %-58s %-10s %-10s\n' "S28" "base OWNERSHIP.md read failure (fail-open to working-tree fallback)" "$(sev_of "$OUT/prefix-s28.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s28.findings.ndjson" lane-violation)"
+echo ""
+
+# ===================================================================================
 echo "=================================================================="
 echo "$NPASS/$N PASS"
 echo "=================================================================="
