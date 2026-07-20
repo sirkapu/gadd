@@ -927,6 +927,269 @@ printf '%-6s %-52s %-10s %-10s\n' "S7" "accept_authors-unset, no signer (nudge)"
 echo ""
 
 # ===================================================================================
+# RUN-31 A2 (SWALLOWED-ERROR HARDENING): S22-S26 exercise the jq-probe and
+# git-trust-anchor-read hardening added in this build (defect classes 1 and
+# 2, run-28 bench anomaly A2). Static PATH shims (one for jq, one for git)
+# are parameterized via env vars set immediately before each run_check02
+# call, so ONE shim file serves every scenario below without per-scenario
+# code generation / heredoc quoting hazards.
+# ===================================================================================
+REAL_JQ="$(command -v jq)"
+export REAL_JQ_FOR_SHIM="$REAL_JQ"
+export REAL_GIT_FOR_SHIM="$REAL_GIT"
+
+JQSHIM_DIR="$WORK/jqshim"; mkdir -p "$JQSHIM_DIR"
+cat > "$JQSHIM_DIR/jq" <<'EOF'
+#!/usr/bin/env bash
+# Static jq-failure shim (S22/S23 below): fails ONLY when its argv exactly
+# matches $JQSHIM_TARGET (a \x1f-joined arg list), delegating to the real jq
+# otherwise. Simulates a genuine jq INVOCATION failure (transient tool
+# failure), never a data-shape difference -- the underlying JSON is always
+# valid at every call site this targets.
+joined="$(printf '%s\x1f' "$@")"
+if [ -n "${JQSHIM_TARGET:-}" ] && [ "$joined" = "$JQSHIM_TARGET" ]; then
+  echo "fake jq invocation failure (simulated, tests/signer-fixtures.sh)" >&2
+  exit "${JQSHIM_FAILRC:-2}"
+fi
+exec "$REAL_JQ_FOR_SHIM" "$@"
+EOF
+chmod +x "$JQSHIM_DIR/jq"
+
+GITSHIM_DIR="$WORK/gitshim"; mkdir -p "$GITSHIM_DIR"
+cat > "$GITSHIM_DIR/git" <<'EOF'
+#!/usr/bin/env bash
+# Static git-read-failure shim (S24/S25/S26 below): fails ANY git invocation
+# whose argv contains the exact arg $GITSHIM_TARGET (typically a "REF:PATH"
+# revision spec), with a rc OTHER than 0 or 1 (so the check's own probes can
+# never mistake this for a clean "definitively absent" -- a real absence
+# reports exit 1). Delegates to the real git otherwise.
+for a in "$@"; do
+  if [ -n "${GITSHIM_TARGET:-}" ] && [ "$a" = "$GITSHIM_TARGET" ]; then
+    echo "fake transient git failure for $GITSHIM_TARGET (simulated, tests/signer-fixtures.sh)" >&2
+    exit "${GITSHIM_FAILRC:-2}"
+  fi
+done
+exec "$REAL_GIT_FOR_SHIM" "$@"
+EOF
+chmod +x "$GITSHIM_DIR/git"
+
+# Extract the pre-THIS-fix check-02 (run-31 A2's own starting point, the
+# current main tip) for the both-direction receipts below -- DIFFERENT from
+# OLD_CHECK02_REF (44f09ed, the pre-run-21 ancient version used by the
+# S2/S3/S4/S5/S7 red-run table above). Per the run-31 A2 mission brief:
+# "obtain via `git show main:.gadd/checks/02-lane-violation.sh` into a
+# scratch copy".
+PREFIX_CHECK02_REF="${PREFIX_CHECK02_REF:-main}"
+PREFIXDIR="$OUT/prefixcheck"; mkdir -p "$PREFIXDIR/lib"
+if ! git -C "$REPO_ROOT" show "$PREFIX_CHECK02_REF:.gadd/checks/02-lane-violation.sh" > "$PREFIXDIR/02-lane-violation.sh" \
+    || [ ! -s "$PREFIXDIR/02-lane-violation.sh" ]; then
+  echo "FATAL: cannot extract pre-run-31-A2 check-02 at $PREFIX_CHECK02_REF -- both-direction receipts cannot run" >&2
+  exit 1
+fi
+cp "$LIB_COMMON" "$PREFIXDIR/lib/common.sh"
+PREFIX_CHECK02="$PREFIXDIR/02-lane-violation.sh"
+run_prefix_check02() { run_a_check "$PREFIX_CHECK02" "$@"; }
+
+# ===================================================================================
+# S22 (run-31 A2 R1): base gadd/BASELINE.json top level is a JSON array (the
+# S15 shape) but the jq -r 'type' probe that would name it is forced to fail
+# via JQSHIM_TARGET="-r type". Pre-fix, `jq -r 'type' ... || true` silently
+# yields an EMPTY string here, rendering the blank-typed message "top level
+# is a JSON , not an object". Post-fix: a distinct, explicitly-worded
+# fail-closed CRITICAL naming the jq failure -- never a blank type.
+# ===================================================================================
+r22="$WORK/s22"
+mkdir -p "$r22/gadd"
+( cd "$r22" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf '[1,2,3]' > "$r22/gadd/BASELINE.json"
+cat > "$r22/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r22" && git add -A && git commit -q -m init ) >/dev/null
+BASE22="$(cd "$r22" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r22/gadd/BASELINE.json"
+HEAD22="$(accept_commit "$r22" "gadd: accept s22 jq-type-probe-fails" "accept@test.local" "")"
+export JQSHIM_TARGET="$(printf '%s\x1f' -r type)"
+export JQSHIM_FAILRC=2
+rc="$(run_check02 s22 "$r22" "$BASE22" "$HEAD22" "$JQSHIM_DIR")"
+unset JQSHIM_TARGET JQSHIM_FAILRC
+assert_zero "(S22) exit 0" "$rc"
+assert_ndjson_finding "(S22) jq -r 'type' probe invocation failure -> distinct fail-closed CRITICAL, named" \
+  "$OUT/s22.findings.ndjson" "lane-violation" "CRITICAL" "jq failure during type probe"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("is a JSON , not an object")))] | length == 0' \
+     "$OUT/s22.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S22) message is NEVER blank-typed (kills the swallowed-|| true regression)"
+else
+  fail "(S22) message is NEVER blank-typed" \
+    "found blank type in: $(cat "$OUT/s22.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S23 (run-31 A2 R1): base gadd/BASELINE.json is well-formed with
+# accept_authors a genuine array of strings (would PASS cleanly with no
+# shim). The array-of-strings membership probe (`jq -e '[...] | all'`) is
+# forced to fail via JQSHIM_TARGET matching its exact program text, with a
+# rc OTHER than 0/1 (not the clean "found a non-string member" rc=1).
+# Post-fix message must be distinguishable from S18's genuine
+# non-string-member wording.
+# ===================================================================================
+r23="$WORK/s23"
+mkdir -p "$r23/gadd"
+( cd "$r23" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf '{"accepted_sha":"0","accept_authors":["accept@test.local"],"metrics":{}}' > "$r23/gadd/BASELINE.json"
+cat > "$r23/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r23" && git add -A && git commit -q -m init ) >/dev/null
+BASE23="$(cd "$r23" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r23/gadd/BASELINE.json"
+HEAD23="$(accept_commit "$r23" "gadd: accept s23 jq-membership-probe-fails" "accept@test.local" "")"
+export JQSHIM_TARGET="$(printf '%s\x1f' -e '[.accept_authors[] | type == "string"] | all')"
+export JQSHIM_FAILRC=2
+rc="$(run_check02 s23 "$r23" "$BASE23" "$HEAD23" "$JQSHIM_DIR")"
+unset JQSHIM_TARGET JQSHIM_FAILRC
+assert_zero "(S23) exit 0" "$rc"
+assert_ndjson_finding "(S23) array-of-strings membership probe invocation failure -> distinct fail-closed CRITICAL" \
+  "$OUT/s23.findings.ndjson" "lane-violation" "CRITICAL" "jq failure during membership probe"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("non-string member")))] | length == 0' \
+     "$OUT/s23.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S23) message is distinguishable from a genuine non-string member (S18 wording absent)"
+else
+  fail "(S23) message is distinguishable from a genuine non-string member" \
+    "found S18-style wording in: $(cat "$OUT/s23.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S24 (run-31 A2 R2, defect class 2): a genuinely ENROLLED repo (real
+# gadd/allowed_signers present and valid at base) whose base read is forced
+# transiently unreadable via GITSHIM_TARGET="$BASE:gadd/allowed_signers"
+# (rc=2, never 1 -- never mistaken for clean absence). The accept commit is
+# left UNSIGNED on purpose: pre-fix, the read failure reads identically to
+# "no anchor enrolled" and the check falls straight through to the LEGACY
+# path, which (accept_authors set, head signers present) emits ZERO
+# findings -- a silent full bypass of signature verification. Post-fix:
+# CRITICAL fail-closed, no LEGACY-path nudge language, exemption denied
+# (generic governed-fence CRITICAL also fires).
+# ===================================================================================
+r24="$WORK/s24"
+GEN24="$(mk_enrolled_repo "$r24" '["accept@test.local"]' key24 "accept@test.local")"
+bump_baseline "$r24" "s24head"
+HEAD24="$(accept_commit "$r24" "gadd: accept s24 base-signers-unreadable" "accept@test.local" "")"
+export GITSHIM_TARGET="$GEN24:gadd/allowed_signers"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s24 "$r24" "$GEN24" "$HEAD24" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S24) exit 0" "$rc"
+assert_ndjson_finding "(S24) BLOCKER (defect class 2): base gadd/allowed_signers read failure -> CRITICAL fail-closed, naming the anchor" \
+  "$OUT/s24.findings.ndjson" "lane-violation" "CRITICAL" "cannot read gadd/allowed_signers from accepted base"
+assert_ndjson_finding "(S24) exemption denied: generic governed-fence CRITICAL also fires" \
+  "$OUT/s24.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+if jq -s -e --arg c "lane-violation" \
+     '[.[] | select(.check==$c and ((.severity=="MINOR") or (.severity=="MAJOR")))] | length == 0' \
+     "$OUT/s24.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S24) NO LEGACY-path MINOR/MAJOR nudge fires (no fail-open degrade to legacy)"
+else
+  fail "(S24) NO LEGACY-path MINOR/MAJOR nudge fires" \
+    "found a MINOR/MAJOR nudge in: $(cat "$OUT/s24.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S25 (run-31 A2 R2): same shape as S24, targeting the base
+# gadd/BASELINE.json read instead of gadd/allowed_signers. Post-fix:
+# CRITICAL fail-closed naming the anchor, exemption denied, and NOT
+# conflated with the "does not parse" / "not an object" malformed-base
+# wording (this base parses fine -- the GIT READ is what failed).
+# ===================================================================================
+r25="$WORK/s25"
+GEN25="$(mk_enrolled_repo "$r25" '["accept@test.local"]' key25 "accept@test.local")"
+KEY25="$KEYDIR/key25.pub"
+bump_baseline "$r25" "s25head"
+HEAD25="$(accept_commit "$r25" "gadd: accept s25 base-baseline-unreadable" "accept@test.local" "$KEY25")"
+export GITSHIM_TARGET="$GEN25:gadd/BASELINE.json"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s25 "$r25" "$GEN25" "$HEAD25" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S25) exit 0" "$rc"
+assert_ndjson_finding "(S25) base gadd/BASELINE.json read failure -> CRITICAL fail-closed, naming the anchor" \
+  "$OUT/s25.findings.ndjson" "lane-violation" "CRITICAL" "cannot read gadd/BASELINE.json from accepted base"
+assert_ndjson_finding "(S25) exemption denied: generic governed-fence CRITICAL also fires" \
+  "$OUT/s25.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and ((.message|contains("does not parse")) or (.message|contains("not an object"))))] | length == 0' \
+     "$OUT/s25.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S25) NOT conflated with the malformed-base wording (a real git read failure, not a parse failure)"
+else
+  fail "(S25) NOT conflated with the malformed-base wording" \
+    "found malformed-base wording in: $(cat "$OUT/s25.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S26 (run-31 A2 R3): ENROLLED repo, base signers read cleanly, but the HEAD
+# signers read is forced unreadable. Pre-fix code has no concept of this at
+# all (head_signers just reads empty). Post-fix: the ratchet rule's
+# "emptied/deleted -- only-tightens" message must NOT fire (head signers is
+# not KNOWN to be empty, only unreadable) -- the read-failure message fires
+# in its place.
+# ===================================================================================
+r26="$WORK/s26"
+GEN26="$(mk_enrolled_repo "$r26" '["accept@test.local"]' key26 "accept@test.local")"
+KEY26="$KEYDIR/key26.pub"
+bump_baseline "$r26" "s26head"
+HEAD26="$(accept_commit "$r26" "gadd: accept s26 head-signers-unreadable" "accept@test.local" "$KEY26")"
+export GITSHIM_TARGET="$HEAD26:gadd/allowed_signers"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s26 "$r26" "$GEN26" "$HEAD26" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S26) exit 0" "$rc"
+assert_ndjson_finding "(S26) HEAD gadd/allowed_signers read failure -> CRITICAL fail-closed, naming HEAD" \
+  "$OUT/s26.findings.ndjson" "lane-violation" "CRITICAL" "cannot read gadd/allowed_signers from HEAD"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("emptied/deleted")))] | length == 0' \
+     "$OUT/s26.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S26) R3: the ratchet rule's 'emptied/deleted' message does NOT fire for a read failure"
+else
+  fail "(S26) R3: the ratchet rule's 'emptied/deleted' message does NOT fire for a read failure" \
+    "found the ratchet message in: $(cat "$OUT/s26.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# BOTH-DIRECTION RECEIPT (run-31 A2, R7c): S22 and S24 replayed against the
+# PRE-fix check-02 (this run's own starting point, main tip) under the
+# IDENTICAL simulated failure, proving the mutation bites -- the old bad
+# behavior actually reproduces, not just "the new code looks right".
+# ===================================================================================
+export JQSHIM_TARGET="$(printf '%s\x1f' -r type)"
+export JQSHIM_FAILRC=2
+prefix_s22="$(run_prefix_check02 prefix-s22 "$r22" "$BASE22" "$HEAD22" "$JQSHIM_DIR")"
+unset JQSHIM_TARGET JQSHIM_FAILRC
+assert_zero "(prefix-run S22) pre-fix check-02 does not crash" "$prefix_s22"
+assert_ndjson_finding "(prefix-run S22) pre-fix check-02 REPRODUCES the blank-typed message under the identical jq failure" \
+  "$OUT/prefix-s22.findings.ndjson" "lane-violation" "CRITICAL" "is a JSON , not an object"
+
+export GITSHIM_TARGET="$GEN24:gadd/allowed_signers"
+export GITSHIM_FAILRC=2
+prefix_s24="$(run_prefix_check02 prefix-s24 "$r24" "$GEN24" "$HEAD24" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(prefix-run S24) pre-fix check-02 does not crash" "$prefix_s24"
+assert_ndjson_no_finding "(prefix-run S24) pre-fix check-02 REPRODUCES the fail-open degrade: ZERO findings despite the unsigned accept + unreadable base anchor" \
+  "$OUT/prefix-s24.findings.ndjson" "lane-violation"
+
+echo ""
+echo "BOTH-DIRECTION RED-RUN TABLE (run-31 A2 pre-fix check-02 @ ${PREFIX_CHECK02_REF} vs the new, hardened check)"
+printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-FIX" "NEW"
+printf '%-6s %-58s %-10s %-10s\n' "S22" "jq -r type probe invocation failure (blank-type bug)" "$(sev_of "$OUT/prefix-s22.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s22.findings.ndjson" lane-violation)"
+printf '%-6s %-58s %-10s %-10s\n' "S24" "base allowed_signers read failure (fail-open to legacy)" "$(sev_of "$OUT/prefix-s24.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s24.findings.ndjson" lane-violation)"
+echo ""
+
+# ===================================================================================
 echo "=================================================================="
 echo "$NPASS/$N PASS"
 echo "=================================================================="
