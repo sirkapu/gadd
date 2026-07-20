@@ -927,6 +927,412 @@ printf '%-6s %-52s %-10s %-10s\n' "S7" "accept_authors-unset, no signer (nudge)"
 echo ""
 
 # ===================================================================================
+# RUN-31 A2 (SWALLOWED-ERROR HARDENING): S22-S26 exercise the jq-probe and
+# git-trust-anchor-read hardening added in this build (defect classes 1 and
+# 2, run-28 bench anomaly A2). Static PATH shims (one for jq, one for git)
+# are parameterized via env vars set immediately before each run_check02
+# call, so ONE shim file serves every scenario below without per-scenario
+# code generation / heredoc quoting hazards.
+# ===================================================================================
+REAL_JQ="$(command -v jq)"
+export REAL_JQ_FOR_SHIM="$REAL_JQ"
+export REAL_GIT_FOR_SHIM="$REAL_GIT"
+
+JQSHIM_DIR="$WORK/jqshim"; mkdir -p "$JQSHIM_DIR"
+cat > "$JQSHIM_DIR/jq" <<'EOF'
+#!/usr/bin/env bash
+# Static jq-failure shim (S22/S23 below): fails ONLY when its argv exactly
+# matches $JQSHIM_TARGET (a \x1f-joined arg list), delegating to the real jq
+# otherwise. Simulates a genuine jq INVOCATION failure (transient tool
+# failure), never a data-shape difference -- the underlying JSON is always
+# valid at every call site this targets.
+joined="$(printf '%s\x1f' "$@")"
+if [ -n "${JQSHIM_TARGET:-}" ] && [ "$joined" = "$JQSHIM_TARGET" ]; then
+  echo "fake jq invocation failure (simulated, tests/signer-fixtures.sh)" >&2
+  exit "${JQSHIM_FAILRC:-2}"
+fi
+exec "$REAL_JQ_FOR_SHIM" "$@"
+EOF
+chmod +x "$JQSHIM_DIR/jq"
+
+GITSHIM_DIR="$WORK/gitshim"; mkdir -p "$GITSHIM_DIR"
+cat > "$GITSHIM_DIR/git" <<'EOF'
+#!/usr/bin/env bash
+# Static git-read-failure shim (S24/S25/S26 below): fails ANY git invocation
+# whose argv contains the exact arg $GITSHIM_TARGET (typically a "REF:PATH"
+# revision spec), with a rc OTHER than 0 or 1 (so the check's own probes can
+# never mistake this for a clean "definitively absent" -- a real absence
+# reports exit 1). Delegates to the real git otherwise.
+for a in "$@"; do
+  if [ -n "${GITSHIM_TARGET:-}" ] && [ "$a" = "$GITSHIM_TARGET" ]; then
+    echo "fake transient git failure for $GITSHIM_TARGET (simulated, tests/signer-fixtures.sh)" >&2
+    exit "${GITSHIM_FAILRC:-2}"
+  fi
+done
+exec "$REAL_GIT_FOR_SHIM" "$@"
+EOF
+chmod +x "$GITSHIM_DIR/git"
+
+# Extract the pre-THIS-fix check-02 (run-31 A2's own starting point, the
+# origin/main tip at the time this repair round started) for the
+# both-direction receipts below -- DIFFERENT from OLD_CHECK02_REF (44f09ed,
+# the pre-run-21 ancient version used by the S2/S3/S4/S5/S7 red-run table
+# above). Per the run-31 A2 mission brief: "obtain via `git show
+# main:.gadd/checks/02-lane-violation.sh` into a scratch copy" -- pinned to
+# a full 40-char commit SHA rather than the bare ref `main` (repair round 1,
+# REGRESSION fix): in CI (actions/checkout@v4, detached HEAD, pull_request)
+# only `origin/main` exists locally, not a bare `main` ref, so the bare
+# default fatal-exited the suite after S21 in that environment. Verified
+# (2026-07-19): this SHA resolves to origin/main, and
+# `git show 43d896c187eaefa78bfe3ed5e767b0d68e03510c:.gadd/checks/02-lane-violation.sh`
+# hashes to 87ddc7e2790669995383fb677b5300733c63bbeb (sha1) -- the pre-fix
+# blob S22/S24's prefix-run receipts require to reproduce the swallowed
+# blank-type message and the fail-open LEGACY degrade.
+PREFIX_CHECK02_REF="${PREFIX_CHECK02_REF:-43d896c187eaefa78bfe3ed5e767b0d68e03510c}"
+PREFIXDIR="$OUT/prefixcheck"; mkdir -p "$PREFIXDIR/lib"
+if ! git -C "$REPO_ROOT" show "$PREFIX_CHECK02_REF:.gadd/checks/02-lane-violation.sh" > "$PREFIXDIR/02-lane-violation.sh" \
+    || [ ! -s "$PREFIXDIR/02-lane-violation.sh" ]; then
+  echo "FATAL: cannot extract pre-run-31-A2 check-02 at $PREFIX_CHECK02_REF -- both-direction receipts cannot run" >&2
+  exit 1
+fi
+cp "$LIB_COMMON" "$PREFIXDIR/lib/common.sh"
+PREFIX_CHECK02="$PREFIXDIR/02-lane-violation.sh"
+run_prefix_check02() { run_a_check "$PREFIX_CHECK02" "$@"; }
+
+# ===================================================================================
+# S22 (run-31 A2 R1): base gadd/BASELINE.json top level is a JSON array (the
+# S15 shape) but the jq -r 'type' probe that would name it is forced to fail
+# via JQSHIM_TARGET="-r type". Pre-fix, `jq -r 'type' ... || true` silently
+# yields an EMPTY string here, rendering the blank-typed message "top level
+# is a JSON , not an object". Post-fix: a distinct, explicitly-worded
+# fail-closed CRITICAL naming the jq failure -- never a blank type.
+# ===================================================================================
+r22="$WORK/s22"
+mkdir -p "$r22/gadd"
+( cd "$r22" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf '[1,2,3]' > "$r22/gadd/BASELINE.json"
+cat > "$r22/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r22" && git add -A && git commit -q -m init ) >/dev/null
+BASE22="$(cd "$r22" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r22/gadd/BASELINE.json"
+HEAD22="$(accept_commit "$r22" "gadd: accept s22 jq-type-probe-fails" "accept@test.local" "")"
+export JQSHIM_TARGET="$(printf '%s\x1f' -r type)"
+export JQSHIM_FAILRC=2
+rc="$(run_check02 s22 "$r22" "$BASE22" "$HEAD22" "$JQSHIM_DIR")"
+unset JQSHIM_TARGET JQSHIM_FAILRC
+assert_zero "(S22) exit 0" "$rc"
+assert_ndjson_finding "(S22) jq -r 'type' probe invocation failure -> distinct fail-closed CRITICAL, named" \
+  "$OUT/s22.findings.ndjson" "lane-violation" "CRITICAL" "jq failure during type probe"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("is a JSON , not an object")))] | length == 0' \
+     "$OUT/s22.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S22) message is NEVER blank-typed (kills the swallowed-|| true regression)"
+else
+  fail "(S22) message is NEVER blank-typed" \
+    "found blank type in: $(cat "$OUT/s22.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S23 (run-31 A2 R1): base gadd/BASELINE.json is well-formed with
+# accept_authors a genuine array of strings (would PASS cleanly with no
+# shim). The array-of-strings membership probe (`jq -e '[...] | all'`) is
+# forced to fail via JQSHIM_TARGET matching its exact program text, with a
+# rc OTHER than 0/1 (not the clean "found a non-string member" rc=1).
+# Post-fix message must be distinguishable from S18's genuine
+# non-string-member wording.
+# ===================================================================================
+r23="$WORK/s23"
+mkdir -p "$r23/gadd"
+( cd "$r23" && git init -q && git config user.email accept@test.local && git config user.name t ) >/dev/null
+printf '{"accepted_sha":"0","accept_authors":["accept@test.local"],"metrics":{}}' > "$r23/gadd/BASELINE.json"
+cat > "$r23/OWNERSHIP.md" <<'EOF'
+```gadd-governed
+gadd/BASELINE.json
+gadd/allowed_signers
+```
+EOF
+( cd "$r23" && git add -A && git commit -q -m init ) >/dev/null
+BASE23="$(cd "$r23" && git rev-parse HEAD)"
+printf '{"accepted_sha":"x","accept_authors":["accept@test.local"],"metrics":{}}' > "$r23/gadd/BASELINE.json"
+HEAD23="$(accept_commit "$r23" "gadd: accept s23 jq-membership-probe-fails" "accept@test.local" "")"
+export JQSHIM_TARGET="$(printf '%s\x1f' -e '[.accept_authors[] | type == "string"] | all')"
+export JQSHIM_FAILRC=2
+rc="$(run_check02 s23 "$r23" "$BASE23" "$HEAD23" "$JQSHIM_DIR")"
+unset JQSHIM_TARGET JQSHIM_FAILRC
+assert_zero "(S23) exit 0" "$rc"
+assert_ndjson_finding "(S23) array-of-strings membership probe invocation failure -> distinct fail-closed CRITICAL" \
+  "$OUT/s23.findings.ndjson" "lane-violation" "CRITICAL" "jq failure during membership probe"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("non-string member")))] | length == 0' \
+     "$OUT/s23.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S23) message is distinguishable from a genuine non-string member (S18 wording absent)"
+else
+  fail "(S23) message is distinguishable from a genuine non-string member" \
+    "found S18-style wording in: $(cat "$OUT/s23.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S24 (run-31 A2 R2, defect class 2): a genuinely ENROLLED repo (real
+# gadd/allowed_signers present and valid at base) whose base read is forced
+# transiently unreadable via GITSHIM_TARGET="$BASE:gadd/allowed_signers"
+# (rc=2, never 1 -- never mistaken for clean absence). The accept commit is
+# left UNSIGNED on purpose: pre-fix, the read failure reads identically to
+# "no anchor enrolled" and the check falls straight through to the LEGACY
+# path, which (accept_authors set, head signers present) emits ZERO
+# findings -- a silent full bypass of signature verification. Post-fix:
+# CRITICAL fail-closed, no LEGACY-path nudge language, exemption denied
+# (generic governed-fence CRITICAL also fires).
+# ===================================================================================
+r24="$WORK/s24"
+GEN24="$(mk_enrolled_repo "$r24" '["accept@test.local"]' key24 "accept@test.local")"
+bump_baseline "$r24" "s24head"
+HEAD24="$(accept_commit "$r24" "gadd: accept s24 base-signers-unreadable" "accept@test.local" "")"
+export GITSHIM_TARGET="$GEN24:gadd/allowed_signers"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s24 "$r24" "$GEN24" "$HEAD24" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S24) exit 0" "$rc"
+assert_ndjson_finding "(S24) BLOCKER (defect class 2): base gadd/allowed_signers read failure -> CRITICAL fail-closed, naming the anchor" \
+  "$OUT/s24.findings.ndjson" "lane-violation" "CRITICAL" "cannot read gadd/allowed_signers from accepted base"
+assert_ndjson_finding "(S24) exemption denied: generic governed-fence CRITICAL also fires" \
+  "$OUT/s24.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+if jq -s -e --arg c "lane-violation" \
+     '[.[] | select(.check==$c and ((.severity=="MINOR") or (.severity=="MAJOR")))] | length == 0' \
+     "$OUT/s24.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S24) NO LEGACY-path MINOR/MAJOR nudge fires (no fail-open degrade to legacy)"
+else
+  fail "(S24) NO LEGACY-path MINOR/MAJOR nudge fires" \
+    "found a MINOR/MAJOR nudge in: $(cat "$OUT/s24.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S25 (run-31 A2 R2): same shape as S24, targeting the base
+# gadd/BASELINE.json read instead of gadd/allowed_signers. Post-fix:
+# CRITICAL fail-closed naming the anchor, exemption denied, and NOT
+# conflated with the "does not parse" / "not an object" malformed-base
+# wording (this base parses fine -- the GIT READ is what failed).
+# ===================================================================================
+r25="$WORK/s25"
+GEN25="$(mk_enrolled_repo "$r25" '["accept@test.local"]' key25 "accept@test.local")"
+KEY25="$KEYDIR/key25.pub"
+bump_baseline "$r25" "s25head"
+HEAD25="$(accept_commit "$r25" "gadd: accept s25 base-baseline-unreadable" "accept@test.local" "$KEY25")"
+export GITSHIM_TARGET="$GEN25:gadd/BASELINE.json"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s25 "$r25" "$GEN25" "$HEAD25" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S25) exit 0" "$rc"
+assert_ndjson_finding "(S25) base gadd/BASELINE.json read failure -> CRITICAL fail-closed, naming the anchor" \
+  "$OUT/s25.findings.ndjson" "lane-violation" "CRITICAL" "cannot read gadd/BASELINE.json from accepted base"
+assert_ndjson_finding "(S25) exemption denied: generic governed-fence CRITICAL also fires" \
+  "$OUT/s25.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and ((.message|contains("does not parse")) or (.message|contains("not an object"))))] | length == 0' \
+     "$OUT/s25.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S25) NOT conflated with the malformed-base wording (a real git read failure, not a parse failure)"
+else
+  fail "(S25) NOT conflated with the malformed-base wording" \
+    "found malformed-base wording in: $(cat "$OUT/s25.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S26 (run-31 A2 R3): ENROLLED repo, base signers read cleanly, but the HEAD
+# signers read is forced unreadable. Pre-fix code has no concept of this at
+# all (head_signers just reads empty). Post-fix: the ratchet rule's
+# "emptied/deleted -- only-tightens" message must NOT fire (head signers is
+# not KNOWN to be empty, only unreadable) -- the read-failure message fires
+# in its place.
+# ===================================================================================
+r26="$WORK/s26"
+GEN26="$(mk_enrolled_repo "$r26" '["accept@test.local"]' key26 "accept@test.local")"
+KEY26="$KEYDIR/key26.pub"
+bump_baseline "$r26" "s26head"
+HEAD26="$(accept_commit "$r26" "gadd: accept s26 head-signers-unreadable" "accept@test.local" "$KEY26")"
+export GITSHIM_TARGET="$HEAD26:gadd/allowed_signers"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s26 "$r26" "$GEN26" "$HEAD26" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S26) exit 0" "$rc"
+assert_ndjson_finding "(S26) HEAD gadd/allowed_signers read failure -> CRITICAL fail-closed, naming HEAD" \
+  "$OUT/s26.findings.ndjson" "lane-violation" "CRITICAL" "cannot read gadd/allowed_signers from HEAD"
+if jq -s -e --arg c "lane-violation" --arg s "CRITICAL" \
+     '[.[] | select(.check==$c and .severity==$s and (.message|contains("emptied/deleted")))] | length == 0' \
+     "$OUT/s26.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S26) R3: the ratchet rule's 'emptied/deleted' message does NOT fire for a read failure"
+else
+  fail "(S26) R3: the ratchet rule's 'emptied/deleted' message does NOT fire for a read failure" \
+    "found the ratchet message in: $(cat "$OUT/s26.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+# ===================================================================================
+# S27 (run-31 A2 repair round 1, G2): drives the genuinely-MISSING (not
+# corrupt) tree-object boundary G1 above hardens against, with a REAL git
+# object-store deletion -- not a PATH-shim simulation like S22-S26. ENROLLED
+# shape (mk_enrolled_repo); the BASE commit's "gadd" subtree loose object is
+# deleted from .git/objects. gadd/BASELINE.json and gadd/allowed_signers
+# both live directly under "gadd/" and therefore share exactly ONE tree
+# object -- there is no way to corrupt the anchor for one without also
+# corrupting the other's.
+#
+# MEASURED (bash -x trace against both script versions, same fixture):
+# git_read_trust_anchor's OWN classification IS correctly hardened by G1 --
+# signers_base_status flips from "absent" (pre-G1, de7139b) to "unreadable"
+# (post-G1) for the IDENTICAL corrupted object, exactly as designed, and
+# baseline_status flips the same way. BUT neither classification is ever
+# acted on for this fixture: accept_touched (this file's own
+# baseline_touched / signers_touched, `git log "$BASE".."$HEAD" -- gadd/...`)
+# and the generic governed-fence fallback (changed_files/deleted_files in
+# lib/common.sh) independently read the SAME corrupted "gadd" subtree via
+# UNGUARDED git log/git diff invocations (no `2>/dev/null`, no rc check --
+# pre-existing, untouched by R1/R2/R3/G1). Git's tree-diff machinery cannot
+# determine "did commit X touch gadd/BASELINE.json" without resolving
+# BASE's own version of that path, so those calls fail the identical way,
+# silently return empty, accept_touched never becomes 1, and the generic
+# fallback's viol list also stays empty. BOTH the pre-G1 and post-G1 script
+# therefore exit 0 with ZERO findings for this fixture -- worse than the
+# LEGACY degrade G1 targeted (a TOTAL silent bypass, no nudge at all).
+#
+# DISCLOSED GAP (out of this repair round's ratified scope -- the Director
+# ruled G1 to git_read_trust_anchor specifically, "apply exactly these,
+# nothing else"): a genuinely missing/corrupted "gadd" subtree object at the
+# accepted base is NOT fail-closed end-to-end even after this repair round,
+# because baseline_touched/signers_touched/changed_files/deleted_files share
+# the identical unguarded-git-read swallow G1 closed only inside
+# git_read_trust_anchor. Flagged here for a future ratified round rather
+# than silently fixed or silently assumed fixed; this fixture PINS the
+# current (undesirable) both-versions-identical behavior so it stays
+# visible instead of being papered over.
+# ===================================================================================
+PRE_G1_CHECK02_REF="${PRE_G1_CHECK02_REF:-de7139b6ec64b351a31a4b00cc3057d1b80d178e}"
+PREG1DIR="$OUT/preg1check"; mkdir -p "$PREG1DIR/lib"
+if ! git -C "$REPO_ROOT" show "$PRE_G1_CHECK02_REF:.gadd/checks/02-lane-violation.sh" > "$PREG1DIR/02-lane-violation.sh" \
+    || [ ! -s "$PREG1DIR/02-lane-violation.sh" ]; then
+  echo "FATAL: cannot extract pre-G1 check-02 at $PRE_G1_CHECK02_REF -- S27 both-direction receipt cannot run" >&2
+  exit 1
+fi
+cp "$LIB_COMMON" "$PREG1DIR/lib/common.sh"
+PRE_G1_CHECK02="$PREG1DIR/02-lane-violation.sh"
+run_pre_g1_check02() { run_a_check "$PRE_G1_CHECK02" "$@"; }
+
+r27="$WORK/s27"
+GEN27="$(mk_enrolled_repo "$r27" '["accept@test.local"]' key27 "accept@test.local")"
+bump_baseline "$r27" "s27head"
+HEAD27="$(accept_commit "$r27" "gadd: accept s27 missing-subtree-object" "accept@test.local" "")"
+GADD27_TREE="$(cd "$r27" && git ls-tree "$GEN27" gadd | awk '{print $3}')"
+GADD27_OBJPATH="$r27/.git/objects/${GADD27_TREE:0:2}/${GADD27_TREE:2}"
+if [ ! -f "$GADD27_OBJPATH" ]; then
+  echo "FATAL (S27): expected loose object $GADD27_OBJPATH not found -- fixture setup assumption (fresh scratch repo, no packs) broke" >&2
+  exit 1
+fi
+rm -f "$GADD27_OBJPATH"
+
+rc="$(run_check02 s27 "$r27" "$GEN27" "$HEAD27")"
+assert_zero "(S27) NEW script does not crash on a missing base subtree object" "$rc"
+assert_ndjson_no_finding "(S27) DISCLOSED GAP: NEW script still produces ZERO findings end-to-end for a missing base 'gadd' subtree object -- git_read_trust_anchor's own read is correctly hardened (bash -x trace: absent -> unreadable, see fix commit body) but accept_touched's separate, unguarded git-log swallow masks it before any finding can fire; closing this is out of this round's ratified scope" \
+  "$OUT/s27.findings.ndjson" "lane-violation"
+
+prefix_s27="$(run_pre_g1_check02 pre-g1-s27 "$r27" "$GEN27" "$HEAD27")"
+assert_zero "(pre-G1-run S27) pre-G1 check-02 (de7139b) does not crash either" "$prefix_s27"
+assert_ndjson_no_finding "(pre-G1-run S27) pre-G1 check-02 ALSO produces ZERO findings -- same masking mechanism, unrelated to G1 -- no visible both-direction bite for this specific fixture (disclosed, not papered over)" \
+  "$OUT/pre-g1-s27.findings.ndjson" "lane-violation"
+
+echo ""
+echo "S27 BOTH-DIRECTION RECEIPT (missing base 'gadd' subtree object, ENROLLED) -- DISCLOSED GAP, not a validated fix"
+printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-G1" "POST-G1"
+printf '%-6s %-58s %-10s %-10s\n' "S27" "missing gadd/ subtree object at accepted base" "$(sev_of "$OUT/pre-g1-s27.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s27.findings.ndjson" lane-violation)"
+echo "S27 NOTE: both columns read 'none' -- the mutation does NOT bite end-to-end for this"
+echo "fixture. git_read_trust_anchor IS correctly hardened in isolation (internal"
+echo "signers_base_status/baseline_status flip absent->unreadable, verified via bash -x"
+echo "trace, not observable through NDJSON findings here); accept_touched's own,"
+echo "separate unguarded git-log swallow masks it. Out of this round's ratified G1/G2"
+echo "scope -- flagged for a future round, see repair-round-1 commit body / report."
+echo ""
+
+# ===================================================================================
+# BOTH-DIRECTION RECEIPT (run-31 A2, R7c): S22 and S24 replayed against the
+# PRE-fix check-02 (this run's own starting point, main tip) under the
+# IDENTICAL simulated failure, proving the mutation bites -- the old bad
+# behavior actually reproduces, not just "the new code looks right".
+# ===================================================================================
+export JQSHIM_TARGET="$(printf '%s\x1f' -r type)"
+export JQSHIM_FAILRC=2
+prefix_s22="$(run_prefix_check02 prefix-s22 "$r22" "$BASE22" "$HEAD22" "$JQSHIM_DIR")"
+unset JQSHIM_TARGET JQSHIM_FAILRC
+assert_zero "(prefix-run S22) pre-fix check-02 does not crash" "$prefix_s22"
+assert_ndjson_finding "(prefix-run S22) pre-fix check-02 REPRODUCES the blank-typed message under the identical jq failure" \
+  "$OUT/prefix-s22.findings.ndjson" "lane-violation" "CRITICAL" "is a JSON , not an object"
+
+export GITSHIM_TARGET="$GEN24:gadd/allowed_signers"
+export GITSHIM_FAILRC=2
+prefix_s24="$(run_prefix_check02 prefix-s24 "$r24" "$GEN24" "$HEAD24" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(prefix-run S24) pre-fix check-02 does not crash" "$prefix_s24"
+assert_ndjson_no_finding "(prefix-run S24) pre-fix check-02 REPRODUCES the fail-open degrade: ZERO findings despite the unsigned accept + unreadable base anchor" \
+  "$OUT/prefix-s24.findings.ndjson" "lane-violation"
+
+echo ""
+echo "BOTH-DIRECTION RED-RUN TABLE (run-31 A2 pre-fix check-02 @ ${PREFIX_CHECK02_REF} vs the new, hardened check)"
+printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-FIX" "NEW"
+printf '%-6s %-58s %-10s %-10s\n' "S22" "jq -r type probe invocation failure (blank-type bug)" "$(sev_of "$OUT/prefix-s22.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s22.findings.ndjson" lane-violation)"
+printf '%-6s %-58s %-10s %-10s\n' "S24" "base allowed_signers read failure (fail-open to legacy)" "$(sev_of "$OUT/prefix-s24.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s24.findings.ndjson" lane-violation)"
+echo ""
+
+# ===================================================================================
+# S28 (run-31 A2, Ratifier receipt iii, defect class 2, 4th wiring): the base
+# OWNERSHIP.md read -- git_read_trust_anchor's FIRST caller, and the ONLY one
+# of the four wirings (OWNERSHIP.md, base allowed_signers/S24, base
+# BASELINE.json/S25, HEAD allowed_signers/S26) not yet pinned -- is forced
+# AMBIGUOUS via GITSHIM_TARGET="$GEN28:OWNERSHIP.md" (rc=2, never 1 -- never
+# mistaken for clean absence), the same shim/corruption technique as
+# S24-S26. Pre-fix, `git show "$GADD_BASE:OWNERSHIP.md" 2>/dev/null || true`
+# silently swallows the failure to an empty string and falls through to the
+# working-tree OWNERSHIP.md fallback -- a path meant ONLY for a genuinely
+# fresh install with nothing accepted yet -- indistinguishable here from an
+# ambiguous base read. Post-fix: CRITICAL fail-closed naming OWNERSHIP.md,
+# script exits 0 per the finding contract, working-tree fallback refused.
+# ===================================================================================
+r28="$WORK/s28"
+GEN28="$(mk_enrolled_repo "$r28" '["accept@test.local"]' key28 "accept@test.local")"
+KEY28="$KEYDIR/key28.pub"
+bump_baseline "$r28" "s28head"
+HEAD28="$(accept_commit "$r28" "gadd: accept s28 base-ownership-unreadable" "accept@test.local" "$KEY28")"
+
+export GITSHIM_TARGET="$GEN28:OWNERSHIP.md"
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s28 "$r28" "$GEN28" "$HEAD28" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S28) exit 0" "$rc"
+assert_ndjson_finding "(S28) BLOCKER (4th wiring): base OWNERSHIP.md read failure -> CRITICAL fail-closed, naming OWNERSHIP.md, refusing the working-tree fallback" \
+  "$OUT/s28.findings.ndjson" "lane-violation" "CRITICAL" "cannot read OWNERSHIP.md from accepted base"
+if jq -s -e --arg c "lane-violation" \
+     '[.[] | select(.check==$c and (.severity=="MINOR" or .severity=="MAJOR"))] | length == 0' \
+     "$OUT/s28.findings.ndjson" >/dev/null 2>&1; then
+  pass "(S28) NO working-tree-fallback nudge fires (no fail-open degrade to the working-tree OWNERSHIP.md)"
+else
+  fail "(S28) NO working-tree-fallback nudge fires" \
+    "found a MINOR/MAJOR finding in: $(cat "$OUT/s28.findings.ndjson" 2>/dev/null | tr -d '\n' | cut -c1-300)"
+fi
+
+export GITSHIM_TARGET="$GEN28:OWNERSHIP.md"
+export GITSHIM_FAILRC=2
+prefix_s28="$(run_prefix_check02 prefix-s28 "$r28" "$GEN28" "$HEAD28" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(prefix-run S28) pre-fix check-02 does not crash" "$prefix_s28"
+assert_ndjson_no_finding "(prefix-run S28) pre-fix check-02 REPRODUCES the silent working-tree fallback: ZERO lane-violation findings (no CRITICAL about OWNERSHIP.md readability) despite the ambiguous base read" \
+  "$OUT/prefix-s28.findings.ndjson" "lane-violation"
+
+echo ""
+echo "S28 BOTH-DIRECTION RECEIPT (base OWNERSHIP.md read failure, 4th wiring, ENROLLED)"
+printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-FIX" "NEW"
+printf '%-6s %-58s %-10s %-10s\n' "S28" "base OWNERSHIP.md read failure (fail-open to working-tree fallback)" "$(sev_of "$OUT/prefix-s28.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s28.findings.ndjson" lane-violation)"
+echo ""
+
+# ===================================================================================
 echo "=================================================================="
 echo "$NPASS/$N PASS"
 echo "=================================================================="
