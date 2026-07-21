@@ -25,6 +25,36 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #32 DECLARED (2026-07-20 system clock; fresh session;
+  heartbeat at declaration 17.4% of ceiling, measured):** bootstrap
+  observations — (a) lock acquired via the lease stale-reclaim path (prior
+  lease age 7702s > TTL 3600s, holder pid 54577 = the run-30/31
+  merge-execution session, which halted at the operator's buttons without
+  releasing; the A3 lease semantics handled it exactly as designed —
+  age-past-TTL reclaim, never pid-death; second live exercise, flag →
+  retro). (b) origin/main == `43d896c` verified live (`git ls-remote`);
+  local main `089a0a0` 19 commits ahead (run-30/31 chain: 3 merges +
+  operator accept `91c67ba` + lantern docs), unpushed, rides the
+  operator's push. (c) HEAD==main, tree clean except untracked `reports/`
+  (standing since run-30, left untouched). (d) BOTH operator buttons
+  still open — re-delivered in this run's STATUS per the custody
+  amendment: (1) amended final accept, accepted_sha →
+  `26ee4ede1bdacef484827e319389d857ecb410a3`, subject "gadd: accept
+  26ee4ed" (SR-5 tree-diff ruling); (2) push, separate word. All three
+  mission branches retained until push confirmed. Plan = ratified queue
+  order: (1) D1 FIRST PICK (Major — gate-lib fail-closed round,
+  operator-ratified NEXT MAJOR, rationale verbatim in the run-30/31
+  steps-1–2 entry; first execution flagged → morning brief + retro):
+  close the total-silent-bypass class — unguarded `git log`
+  (02-lane-violation.sh:245-246,418,440) and changed_files /
+  deleted_files / added_files / diff_added_lines (lib/common.sh:18-21)
+  discard git's exit status, so a missing/corrupt base tree object
+  yields empty output → ZERO findings end-to-end; fix = fail-closed
+  named CRITICALs at every site, both copies of both files, S27
+  expectation flip + new fixtures pinned both directions. (2) n3
+  refresh-ownership check (Standard, bin/**) if budget and context
+  allow.
+
 - **RUN-30/31 MERGE EXECUTION — STEPS 3–4 DONE, HALTED AT THE AMENDED
   FINAL ACCEPT (2026-07-20, same session):** STEP 3 the operator executed
   the accept OWN HANDS via `!` (`91c67ba` "gadd: accept 221f5d4" — FIFTH
