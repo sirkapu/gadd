@@ -25,6 +25,31 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #33 DECLARED (2026-07-21 system clock; fresh session):**
+  bootstrap clean — lock acquired first try (pid 39908, no reclaim needed),
+  heartbeat 20.2% of ceiling at declaration, origin unchanged (`43d896c`),
+  local main at `d2b2ffe` (run-32 close). Operator-button state VERIFIED
+  unchanged since the run-32 close: `gadd/BASELINE.json` accepted_sha still
+  `221f5d4` → the delivered amended final accept ("gadd: accept 26ee4ed" →
+  `26ee4ede1bdacef484827e319389d857ecb410a3`) has NOT landed, so the run-32
+  D1 merge stays PARKED at its SR-5 ordering STOP-1 (HALT while accepted_sha
+  is `221f5d4`); all four retained mission branches intact; push still the
+  operator's separate word. FIRST PICK: n3 refresh-ownership check
+  (Standard, bin/** lane, operator-ratified verbatim "queue the
+  refresh-ownership check (pid-match, exit 5 on mismatch) per spec") — the
+  one unblocked ratified item; closes the run-30 SECURITY n3 class:
+  `refresh` currently touches the lease for WHOEVER holds the lock, so a
+  loop whose lock was stale-reclaimed silently refreshes the usurper's
+  lease instead of learning it lost ownership. MEASURED spec input (this
+  bootstrap): `$PPID` is NOT stable across harness Bash calls (acquire
+  recorded 39908; a later call in the same session saw 39103) — therefore
+  the spec requires the caller to pass the acquisition pid explicitly;
+  a default-`$PPID` refresh would fabricate false lost-lock signals at
+  every phase boundary. Untracked `reports/` dir noted (2026-07-16
+  visual-report artifact, operator-side, untouched). Trigger set for the
+  Standard bench: TEST_HONESTY (always-on, test changes) + SECURITY
+  (input handling / lock trust semantics, run-30 precedent).
+
 - **mission-loop run #32 CLOSE (same session; 1 item completed, MERGE-READY
   parked at the ordering STOP; heartbeat at close prep 35.2% of ceiling,
   measured):** D1 (Major, gate change, L-class; operator-ratified NEXT
