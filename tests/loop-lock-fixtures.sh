@@ -221,7 +221,12 @@ r9="$(new_repo s09)"
 backdate "$(lock_dir "$r9")/lease" 100
 before9="$(mtime_of "$(lock_dir "$r9")/lease")"
 sleep 1
-out9="$(cd "$r9" && "$SCRIPT" refresh)"; rc9=$?
+# n3 (run-33): refresh now requires an explicit, ownership-matching pid
+# argument (fail-closed ownership check — see scenarios 17-21 below). The
+# held pid here is $LIVE_PID, so that is the argument this assert must pass;
+# the assertion text/intent is unchanged, only the now-mandatory argument
+# was added.
+out9="$(cd "$r9" && "$SCRIPT" refresh "$LIVE_PID")"; rc9=$?
 after9="$(mtime_of "$(lock_dir "$r9")/lease")"
 assert_eq "(9) refresh while held -> exit 0" "0" "$rc9"
 assert_eq "(9) refresh moves the lease mtime forward" "true" \
@@ -229,7 +234,11 @@ assert_eq "(9) refresh moves the lease mtime forward" "true" \
 
 r9b="$(new_repo s09b)"
 err9b="$WORK/err09b.txt"
-(cd "$r9b" && "$SCRIPT" refresh >/dev/null 2>"$err9b"); rc9b=$?
+# n3: no lock exists in r9b at all; a valid pid argument (1234, arbitrary —
+# there is nothing to match against) is supplied so this scenario continues
+# to isolate the no-lock case (E3) from the missing-argument case (E5,
+# scenario 21).
+(cd "$r9b" && "$SCRIPT" refresh 1234 >/dev/null 2>"$err9b"); rc9b=$?
 assert_eq "(9b) refresh with no lock held -> exit 5" "5" "$rc9b"
 assert_eq "(9b) refresh-with-no-lock is loud on stderr" "true" \
   "$(grep -q 'no lock held' "$err9b" && echo true || echo false)"
@@ -469,6 +478,152 @@ assert_eq "(16b) status reports FRESH" "true" \
   "$(printf '%s' "$out16b" | grep -q 'FRESH' && echo true || echo false)"
 assert_eq "(16b) status output carries no negative number anywhere" "false" \
   "$(printf '%s' "$out16b" | grep -Eq -- '-[0-9]' && echo true || echo false)"
+
+# ===================================================================================
+# Bench round 2 additions (run-33 n3, additive only — everything above
+# untouched save the two `refresh` call-sites in scenario 9/9b, which now
+# pass the pid `refresh` requires — see the n3 comments there). refresh no
+# longer trusts whoever holds the lock: it must prove ownership by pid-match
+# against the recorded holder, closing the silent-usurper-refresh hole (a
+# loop whose lock was stale-reclaimed by a newcomer must learn it lost
+# ownership, not silently keep refreshing the newcomer's lease). Scenarios
+# 17-21 pin E1-E5 both directions.
+# ===================================================================================
+
+# ===================================================================================
+# Scenario 17 (E1): matching pid refreshes -> exit 0, lease mtime advances,
+# stdout names the pid.
+# mutation-honesty: kills a mutant that adds the ownership check but gets the
+# comparison backwards (refuses on MATCH instead of mismatch), or that drops
+# the `touch` on the success path.
+# ===================================================================================
+r17="$(new_repo s17)"
+(cd "$r17" && "$SCRIPT" acquire "$LIVE_PID" >/dev/null)
+backdate "$(lock_dir "$r17")/lease" 100
+before17="$(mtime_of "$(lock_dir "$r17")/lease")"
+sleep 1
+out17="$(cd "$r17" && "$SCRIPT" refresh "$LIVE_PID")"; rc17=$?
+after17="$(mtime_of "$(lock_dir "$r17")/lease")"
+assert_eq "(17) matching-pid refresh -> exit 0" "0" "$rc17"
+assert_eq "(17) matching-pid refresh advances the lease mtime" "true" \
+  "$([ "$after17" -gt "$before17" ] && echo true || echo false)"
+assert_eq "(17) matching-pid refresh stdout names the pid" "true" \
+  "$(printf '%s' "$out17" | grep -q "pid $LIVE_PID" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 18 (E2, THE OWNERSHIP-CHECK CASE): mismatched pid -> exit 5, lease
+# mtime UNCHANGED (never refresh a lease you don't own), stderr names BOTH
+# the caller's claimed pid and the recorded holder pid.
+# mutation-honesty: kills a mutant that refreshes for whoever holds the lock
+# regardless of the caller's claim (the exact usurper-refresh hole this
+# check closes) — that mutant would exit 0 and advance the mtime here.
+# ===================================================================================
+r18="$(new_repo s18)"
+(cd "$r18" && "$SCRIPT" acquire "$LIVE_PID" >/dev/null)
+backdate "$(lock_dir "$r18")/lease" 100
+before18="$(mtime_of "$(lock_dir "$r18")/lease")"
+err18="$WORK/err18.txt"
+out18="$(cd "$r18" && "$SCRIPT" refresh "$DEAD_PID" 2>"$err18")"; rc18=$?
+after18="$(mtime_of "$(lock_dir "$r18")/lease")"
+assert_eq "(18) mismatched-pid refresh -> exit 5" "5" "$rc18"
+assert_eq "(18) mismatched-pid refresh leaves the lease mtime unchanged" "$before18" "$after18"
+assert_eq "(18) mismatch stderr names the caller's claimed pid" "true" \
+  "$(grep -q "$DEAD_PID" "$err18" && echo true || echo false)"
+assert_eq "(18) mismatch stderr names the recorded holder pid" "true" \
+  "$(grep -q "$LIVE_PID" "$err18" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 19 (E3, pid-arg-supplied variant): no lock dir exists, but the
+# refresh call carries a syntactically valid pid -> exit 5, the pre-existing
+# "cannot refresh — no lock held" stderr message preserved verbatim, lease
+# marker never created.
+# mutation-honesty: kills a mutant that reorders the ownership check ahead of
+# the lock-exists check in a way that swallows/rewords the no-lock message.
+# ===================================================================================
+r19="$(new_repo s19)"
+err19="$WORK/err19.txt"
+(cd "$r19" && "$SCRIPT" refresh 4321 >/dev/null 2>"$err19"); rc19=$?
+assert_eq "(19) no-lock refresh with a valid pid arg -> exit 5" "5" "$rc19"
+assert_eq "(19) no-lock message preserved verbatim" "true" \
+  "$(grep -q '\[loop-lock\] cannot refresh — no lock held' "$err19" && echo true || echo false)"
+assert_eq "(19) no-lock refresh never creates a lock dir" "false" \
+  "$([ -d "$(lock_dir "$r19")" ] && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 20 (E4): corrupt lock — pid file empty, and pid file non-numeric.
+# Both cases: ownership is unverifiable -> exit 5, lease mtime UNCHANGED,
+# loud stderr. Lock dir + lease are built manually (mirrors scenarios 5/6's
+# old-format-lock construction) since `acquire` always writes a valid
+# numeric pid.
+# mutation-honesty: kills a mutant that treats an unreadable/corrupt held pid
+# as "no one owns it, so anyone may refresh" (fail-open) instead of refusing.
+# ===================================================================================
+r20a="$(new_repo s20a)"
+mkdir -p "$(lock_dir "$r20a")"
+: > "$(lock_dir "$r20a")/pid"   # empty pid file
+touch "$(lock_dir "$r20a")/lease"
+backdate "$(lock_dir "$r20a")/lease" 100
+before20a="$(mtime_of "$(lock_dir "$r20a")/lease")"
+err20a="$WORK/err20a.txt"
+(cd "$r20a" && "$SCRIPT" refresh 5555 >/dev/null 2>"$err20a"); rc20a=$?
+after20a="$(mtime_of "$(lock_dir "$r20a")/lease")"
+assert_eq "(20a) empty pid file -> refresh exit 5" "5" "$rc20a"
+assert_eq "(20a) empty pid file -> lease mtime unchanged" "$before20a" "$after20a"
+assert_eq "(20a) empty pid file -> stderr is loud about corrupt/unverifiable ownership" "true" \
+  "$(grep -Eq 'corrupt|unverifiable' "$err20a" && echo true || echo false)"
+
+r20b="$(new_repo s20b)"
+mkdir -p "$(lock_dir "$r20b")"
+echo "not-a-pid" > "$(lock_dir "$r20b")/pid"   # non-numeric pid file
+touch "$(lock_dir "$r20b")/lease"
+backdate "$(lock_dir "$r20b")/lease" 100
+before20b="$(mtime_of "$(lock_dir "$r20b")/lease")"
+err20b="$WORK/err20b.txt"
+(cd "$r20b" && "$SCRIPT" refresh 5556 >/dev/null 2>"$err20b"); rc20b=$?
+after20b="$(mtime_of "$(lock_dir "$r20b")/lease")"
+assert_eq "(20b) non-numeric pid file -> refresh exit 5" "5" "$rc20b"
+assert_eq "(20b) non-numeric pid file -> lease mtime unchanged" "$before20b" "$after20b"
+assert_eq "(20b) non-numeric pid file -> stderr is loud about corrupt/unverifiable ownership" "true" \
+  "$(grep -Eq 'corrupt|unverifiable' "$err20b" && echo true || echo false)"
+
+# ===================================================================================
+# Scenario 21 (E5): a missing or invalid ownership claim is a caller bug —
+# exit 2 with the usage line, distinct from the lost-lock exit 5. Covers no
+# argument at all, a non-numeric argument, and an explicit empty-string
+# argument, all against a HELD lock (so a passing exit-5 result would prove
+# the argument check is being skipped and the no-lock/ownership checks are
+# firing instead). Lease mtime must not change in any case.
+# mutation-honesty: kills a mutant that folds a missing/invalid pid argument
+# into the ownership-mismatch branch (wrongly returning 5 instead of 2), or
+# one that lets an unset `$2` reach the ownership comparison as an empty
+# string that happens to not match (accidentally correct exit code for the
+# wrong reason, but still failing the usage-message assertions here).
+# ===================================================================================
+r21="$(new_repo s21)"
+(cd "$r21" && "$SCRIPT" acquire "$LIVE_PID" >/dev/null)
+backdate "$(lock_dir "$r21")/lease" 100
+before21="$(mtime_of "$(lock_dir "$r21")/lease")"
+
+err21a="$WORK/err21a.txt"
+(cd "$r21" && "$SCRIPT" refresh >/dev/null 2>"$err21a"); rc21a=$?
+assert_eq "(21a) refresh with no pid argument -> exit 2" "2" "$rc21a"
+assert_eq "(21a) no-pid-argument stderr carries usage" "true" \
+  "$(grep -q 'usage:' "$err21a" && echo true || echo false)"
+
+err21b="$WORK/err21b.txt"
+(cd "$r21" && "$SCRIPT" refresh notanumber >/dev/null 2>"$err21b"); rc21b=$?
+assert_eq "(21b) refresh with a non-numeric pid argument -> exit 2" "2" "$rc21b"
+assert_eq "(21b) non-numeric-argument stderr carries usage" "true" \
+  "$(grep -q 'usage:' "$err21b" && echo true || echo false)"
+
+err21c="$WORK/err21c.txt"
+(cd "$r21" && "$SCRIPT" refresh "" >/dev/null 2>"$err21c"); rc21c=$?
+assert_eq "(21c) refresh with an explicit empty-string pid argument -> exit 2" "2" "$rc21c"
+assert_eq "(21c) empty-argument stderr carries usage" "true" \
+  "$(grep -q 'usage:' "$err21c" && echo true || echo false)"
+
+after21="$(mtime_of "$(lock_dir "$r21")/lease")"
+assert_eq "(21) invalid-argument refresh attempts never move the lease mtime" "$before21" "$after21"
 
 # ===================================================================================
 echo ""
