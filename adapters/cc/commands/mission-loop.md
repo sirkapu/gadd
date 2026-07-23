@@ -14,9 +14,11 @@
    treatment), log one line — "mission loop already active — no-op exit" — and end
    the session cleanly: never run two loops on one tree. Staleness is LEASE AGE PAST
    TTL (default 3600s, `GADD_LOOP_LEASE_TTL` overridable) — NEVER pid-death alone;
-   run `bin/loop-lock.sh refresh` at every phase boundary of this loop to keep the
-   lease alive (a long-running loop that skips refresh risks a legitimate reclaim by
-   a newcomer once the lease ages out). Release with `bin/loop-lock.sh release`
+   run `bin/loop-lock.sh refresh <pid>` (the pid printed by acquire) at every phase
+   boundary of this loop to keep the lease alive; exit 5 means the lock was
+   lost/reclaimed — treat it as a lost lock, never retry blind (a long-running loop
+   that skips refresh risks a legitimate reclaim by a newcomer once the lease ages
+   out). Release with `bin/loop-lock.sh release`
    after the final STATUS block / brief delivery.
 1. Read root `CLAUDE.md` + lantern. Declare this session in the lantern: `mission-loop run #N`.
 2. **Objective check:** does a ratified objective function exist (North Star + guards + DoD, marked RATIFIED)?

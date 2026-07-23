@@ -24,7 +24,7 @@
 # future-dated mtime (clock skew) clamps to age 0 rather than going negative
 # and permanently FRESH (run-30 A3 bench, SECURITY notes 1 and 2).
 #
-# USAGE: bin/loop-lock.sh acquire [pid] | release | status | refresh
+# USAGE: bin/loop-lock.sh acquire [pid] | release | status | refresh <pid>
 #   acquire [pid]  -> take the lock for pid (default: $PPID). Exit 0 on
 #                     success, 3 if the existing lock's lease age is <= TTL
 #                     (newcomer must no-op — REGARDLESS of recorded-pid
@@ -37,9 +37,26 @@
 #   status         -> report holder pid, advisory pid-liveness (display
 #                     only), lease age, effective TTL, and FRESH/STALE.
 #                     Always exit 0.
-#   refresh        -> touch the lease marker (phase-boundary duty of a live
-#                     loop). Exit 0 if a lock is held, 5 (loud) if not — a
-#                     loop that lost its lock must find out.
+#   refresh <pid>  -> touch the lease marker (phase-boundary duty of a live
+#                     loop) — but ONLY after proving ownership: the recorded
+#                     lock-holder pid must equal <pid>. <pid> is an EXPLICIT,
+#                     required argument (the pid `acquire` printed), never
+#                     defaulted to $PPID — MEASURED (this harness, this
+#                     session): an `acquire` recorded pid 39908, and a later
+#                     Bash tool call in the SAME session saw $PPID 39103 —
+#                     $PPID is not stable across Bash tool calls here, so
+#                     defaulting to it would fabricate false lost-lock
+#                     signals at every phase boundary. Exit 0 on a pid match
+#                     (lease touched). Exit 5 (loud, naming both the
+#                     caller's claimed pid and the recorded holder pid) and
+#                     the lease marker mtime UNCHANGED if: no lock is held,
+#                     the recorded holder pid is missing/empty/non-numeric
+#                     (corrupt lock — ownership unverifiable, fail closed),
+#                     or <pid> does not match the recorded holder (lock
+#                     likely stale-reclaimed by another instance — never
+#                     refresh a lease you don't own). Exit 2 with the usage
+#                     line if <pid> is missing, empty, or non-numeric — a
+#                     caller bug, distinct from the lost-lock exit 5.
 #
 # TTL: default 3600s, overridable via env GADD_LOOP_LEASE_TTL (positive
 # integer seconds). An invalid value (non-numeric, zero, negative, empty) is
@@ -166,12 +183,40 @@ case "$cmd" in
     ;;
 
   refresh)
+    # Ownership check (n3, closes the silent-usurper-refresh hole): a
+    # missing/non-numeric claimed pid is a caller bug, not a lost lock — the
+    # pid is a REQUIRED explicit argument, never defaulted to $PPID (see
+    # header: $PPID is measured unstable across Bash tool calls in this
+    # harness). Fail closed on ambiguity: no exit path below this point ever
+    # touches the lease marker unless the claimed pid provably matches the
+    # recorded holder.
+    claim_pid="${2:-}"
+    if [[ ! "$claim_pid" =~ ^[0-9]+$ ]]; then
+      echo "usage: $(basename "$0") refresh <pid>  (the pid printed by acquire — never omit it)" >&2
+      exit 2
+    fi
     if [ ! -d "$LOCK_DIR" ]; then
       echo "[loop-lock] cannot refresh — no lock held" >&2
       exit 5
     fi
+    held_pid="$(read_lock_pid)"
+    # Corrupt lock (pid file missing/empty/non-numeric): ownership cannot be
+    # proven either way. Fail closed — refuse rather than guess.
+    if [[ ! "$held_pid" =~ ^[0-9]+$ ]]; then
+      echo "[loop-lock] refresh refused — recorded holder pid is missing/corrupt (caller claims pid $claim_pid) — ownership unverifiable, refusing (fail-closed)" >&2
+      exit 5
+    fi
+    # Pid mismatch: our lock was very likely stale-reclaimed by a newcomer
+    # since we last checked. Touching the lease now would silently extend
+    # THEIR lease on our behalf — the exact usurper-refresh hole this check
+    # closes. Name both pids so the caller can diagnose, and leave the lease
+    # marker's mtime untouched.
+    if [ "$held_pid" != "$claim_pid" ]; then
+      echo "[loop-lock] refresh refused — pid mismatch: caller claims pid $claim_pid, but the lock is held by pid $held_pid (lock likely reclaimed by another instance) — not refreshing" >&2
+      exit 5
+    fi
     touch "$LEASE_FILE"
-    echo "lease refreshed"
+    echo "lease refreshed (pid $claim_pid)"
     exit 0
     ;;
 
@@ -213,7 +258,7 @@ case "$cmd" in
     ;;
 
   *)
-    echo "usage: $(basename "$0") acquire [pid] | release | status | refresh" >&2
+    echo "usage: $(basename "$0") acquire [pid] | release | status | refresh <pid>" >&2
     exit 2
     ;;
 esac
