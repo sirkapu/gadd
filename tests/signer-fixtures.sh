@@ -1170,43 +1170,38 @@ else
 fi
 
 # ===================================================================================
-# S27 (run-31 A2 repair round 1, G2): drives the genuinely-MISSING (not
-# corrupt) tree-object boundary G1 above hardens against, with a REAL git
-# object-store deletion -- not a PATH-shim simulation like S22-S26. ENROLLED
-# shape (mk_enrolled_repo); the BASE commit's "gadd" subtree loose object is
-# deleted from .git/objects. gadd/BASELINE.json and gadd/allowed_signers
-# both live directly under "gadd/" and therefore share exactly ONE tree
-# object -- there is no way to corrupt the anchor for one without also
-# corrupting the other's.
+# S27 (run-31 A2 repair round 1, G2; FLIPPED in run-32 D1 -- see below):
+# drives the genuinely-MISSING (not corrupt) tree-object boundary G1 above
+# hardens against, with a REAL git object-store deletion -- not a
+# PATH-shim simulation like S22-S26. ENROLLED shape (mk_enrolled_repo); the
+# BASE commit's "gadd" subtree loose object is deleted from .git/objects.
+# gadd/BASELINE.json and gadd/allowed_signers both live directly under
+# "gadd/" and therefore share exactly ONE tree object -- there is no way to
+# corrupt the anchor for one without also corrupting the other's.
 #
-# MEASURED (bash -x trace against both script versions, same fixture):
-# git_read_trust_anchor's OWN classification IS correctly hardened by G1 --
-# signers_base_status flips from "absent" (pre-G1, de7139b) to "unreadable"
-# (post-G1) for the IDENTICAL corrupted object, exactly as designed, and
-# baseline_status flips the same way. BUT neither classification is ever
-# acted on for this fixture: accept_touched (this file's own
-# baseline_touched / signers_touched, `git log "$BASE".."$HEAD" -- gadd/...`)
-# and the generic governed-fence fallback (changed_files/deleted_files in
-# lib/common.sh) independently read the SAME corrupted "gadd" subtree via
-# UNGUARDED git log/git diff invocations (no `2>/dev/null`, no rc check --
-# pre-existing, untouched by R1/R2/R3/G1). Git's tree-diff machinery cannot
-# determine "did commit X touch gadd/BASELINE.json" without resolving
-# BASE's own version of that path, so those calls fail the identical way,
-# silently return empty, accept_touched never becomes 1, and the generic
-# fallback's viol list also stays empty. BOTH the pre-G1 and post-G1 script
-# therefore exit 0 with ZERO findings for this fixture -- worse than the
-# LEGACY degrade G1 targeted (a TOTAL silent bypass, no nudge at all).
+# HISTORY: at run-31 A2 repair round 1 time, this fixture PINNED a
+# DISCLOSED GAP ("out of scope", operator ratification quoted then: G1
+# applied only to git_read_trust_anchor) -- git_read_trust_anchor's own
+# classification WAS correctly hardened (absent -> unreadable for the
+# corrupted object) but accept_touched's own separate, unguarded
+# `baseline_touched`/`signers_touched` git-log reads, plus the generic
+# governed-fence fallback's changed_files/deleted_files (lib/common.sh),
+# independently hit the identical corrupted tree via UNGUARDED reads and
+# silently returned empty -- a TOTAL silent bypass, zero findings
+# end-to-end, worse than the LEGACY degrade G1 targeted.
 #
-# DISCLOSED GAP (out of this repair round's ratified scope -- the Director
-# ruled G1 to git_read_trust_anchor specifically, "apply exactly these,
-# nothing else"): a genuinely missing/corrupted "gadd" subtree object at the
-# accepted base is NOT fail-closed end-to-end even after this repair round,
-# because baseline_touched/signers_touched/changed_files/deleted_files share
-# the identical unguarded-git-read swallow G1 closed only inside
-# git_read_trust_anchor. Flagged here for a future ratified round rather
-# than silently fixed or silently assumed fixed; this fixture PINS the
-# current (undesirable) both-versions-identical behavior so it stays
-# visible instead of being papered over.
+# RUN-32 D1 (ratified, Major tier, fail-closed doctrine) closes exactly this
+# disclosed gap: `changed_files`/`deleted_files`/`added_files`/
+# `diff_added_lines` in lib/common.sh, and the `baseline_touched`/
+# `signers_touched` git-log reads plus the two per-commit-loop git-log reads
+# in 02-lane-violation.sh, now all capture git's own exit status and record
+# a CRITICAL, fail-closed finding on failure (see the run-32 feat commit
+# body for the measured rc=128 "fatal: unable to read tree" taxonomy).
+# FLIPPED: the NEW script now produces MULTIPLE CRITICAL findings for this
+# identical fixture -- the previously-disclosed gap is closed. The pre-G1
+# comparison column is kept for historical continuity (that ancient,
+# pre-run-31 script predates even the accept-signer machinery this gap
+# lived in and is not expected to change).
 # ===================================================================================
 PRE_G1_CHECK02_REF="${PRE_G1_CHECK02_REF:-de7139b6ec64b351a31a4b00cc3057d1b80d178e}"
 PREG1DIR="$OUT/preg1check"; mkdir -p "$PREG1DIR/lib"
@@ -1233,25 +1228,138 @@ rm -f "$GADD27_OBJPATH"
 
 rc="$(run_check02 s27 "$r27" "$GEN27" "$HEAD27")"
 assert_zero "(S27) NEW script does not crash on a missing base subtree object" "$rc"
-assert_ndjson_no_finding "(S27) DISCLOSED GAP: NEW script still produces ZERO findings end-to-end for a missing base 'gadd' subtree object -- git_read_trust_anchor's own read is correctly hardened (bash -x trace: absent -> unreadable, see fix commit body) but accept_touched's separate, unguarded git-log swallow masks it before any finding can fire; closing this is out of this round's ratified scope" \
-  "$OUT/s27.findings.ndjson" "lane-violation"
+assert_ndjson_finding "(S27) RUN-32 D1 FIX: NEW script now fails CLOSED end-to-end for a missing base 'gadd' subtree object -- CRITICAL naming the failed commit walk, fail-closed" \
+  "$OUT/s27.findings.ndjson" "lane-violation" "CRITICAL" "fail-closed"
+# NOTE: unlike S30/S31/S32 below (which shim ONLY the git-log calls, leaving
+# changed_files/deleted_files able to see the real diff and so able to
+# name gadd/BASELINE.json in the generic governed-fence CRITICAL), S27's
+# mutation destroys the WHOLE "gadd" tree object -- changed_files/
+# deleted_files fail too (see S29), so the generic per-file loop has
+# nothing to iterate over and the "Governed-side files were modified"
+# message correctly does not fire here. Total object loss is caught by the
+# commit-walk and lib-common CRITICALs above, not by the generic fence.
 
 prefix_s27="$(run_pre_g1_check02 pre-g1-s27 "$r27" "$GEN27" "$HEAD27")"
 assert_zero "(pre-G1-run S27) pre-G1 check-02 (de7139b) does not crash either" "$prefix_s27"
-assert_ndjson_no_finding "(pre-G1-run S27) pre-G1 check-02 ALSO produces ZERO findings -- same masking mechanism, unrelated to G1 -- no visible both-direction bite for this specific fixture (disclosed, not papered over)" \
+assert_ndjson_no_finding "(pre-G1-run S27) pre-G1 check-02 (ancient, pre-dates run-32 D1 too) STILL produces ZERO findings -- unrelated, unfixed by this round, kept for historical continuity of the both-direction table" \
   "$OUT/pre-g1-s27.findings.ndjson" "lane-violation"
 
 echo ""
-echo "S27 BOTH-DIRECTION RECEIPT (missing base 'gadd' subtree object, ENROLLED) -- DISCLOSED GAP, not a validated fix"
-printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-G1" "POST-G1"
+echo "S27 BOTH-DIRECTION RECEIPT (missing base 'gadd' subtree object, ENROLLED) -- run-32 D1 FIX, gap CLOSED"
+printf '%-6s %-58s %-10s %-10s\n' "Scen" "Attack" "PRE-G1" "POST-D1"
 printf '%-6s %-58s %-10s %-10s\n' "S27" "missing gadd/ subtree object at accepted base" "$(sev_of "$OUT/pre-g1-s27.findings.ndjson" lane-violation)" "$(sev_of "$OUT/s27.findings.ndjson" lane-violation)"
-echo "S27 NOTE: both columns read 'none' -- the mutation does NOT bite end-to-end for this"
-echo "fixture. git_read_trust_anchor IS correctly hardened in isolation (internal"
-echo "signers_base_status/baseline_status flip absent->unreadable, verified via bash -x"
-echo "trace, not observable through NDJSON findings here); accept_touched's own,"
-echo "separate unguarded git-log swallow masks it. Out of this round's ratified G1/G2"
-echo "scope -- flagged for a future round, see repair-round-1 commit body / report."
+echo "S27 NOTE: PRE-G1 (ancient script) still reads 'none' -- unrelated to this round. POST-D1"
+echo "now reads CRITICAL: accept_touched's own commit-walk reads (baseline_touched/"
+echo "signers_touched) and the generic changed_files/deleted_files fallback in"
+echo "lib/common.sh are all now guarded, closing the run-31 A2 repair-round-1 disclosed gap."
 echo ""
+
+# ===================================================================================
+# S29 (run-32 D1, rejection path (a)): same missing-base-subtree-object
+# fixture as S27 (reused, unchanged since S27's own mutation, no further
+# writes to r27) -- a DEDICATED assertion on the lib/common.sh-side
+# CRITICAL (check="lib-common"), distinct from S27's lane-violation-side
+# assertions above. Proves the generic changed_files/deleted_files
+# fallback in lib/common.sh itself fails closed, independent of
+# 02-lane-violation.sh's own accept-verification guards.
+# ===================================================================================
+rc="$(run_check02 s29 "$r27" "$GEN27" "$HEAD27")"
+assert_zero "(S29) exit 0 (finding recorded, not a crash)" "$rc"
+assert_ndjson_finding "(S29) rejection path (a): missing base subtree object -> lib-common changed_files-class CRITICAL, fail-closed" \
+  "$OUT/s29.findings.ndjson" "lib-common" "CRITICAL" "changed_files(): git diff --name-only failed"
+assert_ndjson_finding "(S29) rejection path (a): missing base subtree object -> lib-common deleted_files-class CRITICAL, fail-closed" \
+  "$OUT/s29.findings.ndjson" "lib-common" "CRITICAL" "deleted_files(): git diff --name-only failed"
+
+# ===================================================================================
+# S30 (run-32 D1, rejection path (b)): the touched-probe git-log reads
+# (baseline_touched / signers_touched, both `--format='%H'`) are forced to
+# fail via a targeted GITSHIM (argv exactly "--format=%H"), on an otherwise
+# perfectly healthy ENROLLED accept push (a REAL git-object corruption is
+# not needed to isolate this one call). BOTH DIRECTIONS: unshimmed, this
+# exact fixture is a clean PASS (no findings at all); shimmed, it must
+# produce the new CRITICAL AND deny the accept-exemption (the generic
+# governed-fence CRITICAL fires too, naming gadd/BASELINE.json) -- "no
+# exemption" per the ratified fix shape.
+# ===================================================================================
+r30="$WORK/s30"
+GEN30="$(mk_enrolled_repo "$r30" '["accept@test.local"]' key30 "accept@test.local")"
+KEY30="$KEYDIR/key30.pub"
+bump_baseline "$r30" "s30head"
+HEAD30="$(accept_commit "$r30" "gadd: accept s30 touched-probe-walk-fails" "accept@test.local" "$KEY30")"
+
+rc="$(run_check02 s30clean "$r30" "$GEN30" "$HEAD30")"
+assert_zero "(S30 clean) exit 0" "$rc"
+assert_ndjson_no_finding "(S30 clean) unshimmed control: identical fixture, no git-log failure -> PASS, no findings" \
+  "$OUT/s30clean.findings.ndjson" "lane-violation"
+
+export GITSHIM_TARGET='--format=%H'
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s30 "$r30" "$GEN30" "$HEAD30" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S30) exit 0" "$rc"
+assert_ndjson_finding "(S30) rejection path (b): touched-probe git-log walk failure -> CRITICAL naming the failed walk, fail-closed" \
+  "$OUT/s30.findings.ndjson" "lane-violation" "CRITICAL" "commit walk for gadd/BASELINE.json failed"
+assert_ndjson_finding "(S30) rejection path (b): NO exemption granted on an unreliable walk -- generic governed-fence CRITICAL also fires" \
+  "$OUT/s30.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+
+# ===================================================================================
+# S31 (run-32 D1, rejection path (c), ENROLLED): the per-commit ENROLLED
+# walk (`--format='%H%x09%s%x09%ae'`, line ~454) is forced to fail via a
+# GITSHIM targeting that exact, distinct format string -- NOT the
+# touched-probe's `--format='%H'` (S30) -- proving this is a genuinely
+# separate guard, not the same one firing twice. Reachable distinctly
+# because the touched-probe (baseline_touched/signers_touched) and the
+# trust-anchor reads (git_read_trust_anchor) must all succeed for the
+# per-commit loop to even be entered. BOTH DIRECTIONS as S30.
+# ===================================================================================
+r31="$WORK/s31"
+GEN31="$(mk_enrolled_repo "$r31" '["accept@test.local"]' key31 "accept@test.local")"
+KEY31="$KEYDIR/key31.pub"
+bump_baseline "$r31" "s31head"
+HEAD31="$(accept_commit "$r31" "gadd: accept s31 per-commit-walk-fails" "accept@test.local" "$KEY31")"
+
+rc="$(run_check02 s31clean "$r31" "$GEN31" "$HEAD31")"
+assert_zero "(S31 clean) exit 0" "$rc"
+assert_ndjson_no_finding "(S31 clean) unshimmed control: identical fixture, no git-log failure -> PASS, no findings" \
+  "$OUT/s31clean.findings.ndjson" "lane-violation"
+
+export GITSHIM_TARGET='--format=%H%x09%s%x09%ae'
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s31 "$r31" "$GEN31" "$HEAD31" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S31) exit 0" "$rc"
+assert_ndjson_finding "(S31) rejection path (c), ENROLLED: per-commit accept-signer walk failure -> CRITICAL, fail-closed, distinct from S30's touched-probe guard" \
+  "$OUT/s31.findings.ndjson" "lane-violation" "CRITICAL" "commit walk for accept-signer verification failed"
+assert_ndjson_finding "(S31) rejection path (c): NO exemption granted -- generic governed-fence CRITICAL also fires" \
+  "$OUT/s31.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
+
+# ===================================================================================
+# S32 (run-32 D1, rejection path (c), LEGACY): the per-commit LEGACY walk
+# (`--format='%s%x09%ae'`, line ~476) is forced to fail via a GITSHIM
+# targeting ITS distinct format string, on an unenrolled (legacy) accept
+# push. Proves the LEGACY loop's own independent guard, not merely a
+# byproduct of the ENROLLED-path fix (S31). BOTH DIRECTIONS as S30/S31.
+# ===================================================================================
+r32="$WORK/s32"
+mk_signer_repo "$r32" '["accept@test.local"]' 1
+BASE32="$(cd "$r32" && git rev-parse HEAD)"
+bump_baseline "$r32" "s32head"
+HEAD32="$(accept_commit "$r32" "gadd: accept s32 legacy-per-commit-walk-fails" "accept@test.local" "")"
+
+rc="$(run_check02 s32clean "$r32" "$BASE32" "$HEAD32")"
+assert_zero "(S32 clean) exit 0" "$rc"
+assert_ndjson_no_finding_sev "(S32 clean) unshimmed control: identical fixture, no git-log failure -> only the pre-existing legacy MINOR nudge, no CRITICAL" \
+  "$OUT/s32clean.findings.ndjson" "lane-violation" "CRITICAL"
+
+export GITSHIM_TARGET='--format=%s%x09%ae'
+export GITSHIM_FAILRC=2
+rc="$(run_check02 s32 "$r32" "$BASE32" "$HEAD32" "$GITSHIM_DIR")"
+unset GITSHIM_TARGET GITSHIM_FAILRC
+assert_zero "(S32) exit 0" "$rc"
+assert_ndjson_finding "(S32) rejection path (c), LEGACY: per-commit legacy walk failure -> CRITICAL, fail-closed, distinct from S30/S31" \
+  "$OUT/s32.findings.ndjson" "lane-violation" "CRITICAL" "commit walk for legacy accept verification failed"
+assert_ndjson_finding "(S32) rejection path (c): NO exemption granted -- generic governed-fence CRITICAL also fires" \
+  "$OUT/s32.findings.ndjson" "lane-violation" "CRITICAL" "Governed-side files were modified"
 
 # ===================================================================================
 # BOTH-DIRECTION RECEIPT (run-31 A2, R7c): S22 and S24 replayed against the

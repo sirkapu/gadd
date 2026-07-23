@@ -242,10 +242,37 @@ git_read_trust_anchor "$GADD_BASE" "gadd/allowed_signers"
 signers_base_status="$GADD_TA_STATUS"; signers_base="$GADD_TA_CONTENT"
 git_read_trust_anchor "$GADD_HEAD" "gadd/allowed_signers"
 head_signers_status="$GADD_TA_STATUS"; head_signers="$GADD_TA_CONTENT"
+
+# TOTAL-SILENT-BYPASS HARDENING (run-32, ratified D1, fail-closed doctrine):
+# these two `git log` reads previously fed accept_touched via bare command
+# substitution — a git failure (e.g. the base commit's "gadd" subtree tree
+# object missing from .git/objects) yields the identical empty stdout as a
+# genuine "neither file touched", so accept_touched stayed empty and the
+# ENTIRE accept-verification block below was silently skipped end-to-end
+# (MEASURED: rc=128 "fatal: unable to read tree <sha>", empty stdout — see
+# the run-32 feat commit body). Command substitution propagates the inner
+# command's own exit status to $? immediately after the assignment (no
+# `|| true` involved here to begin with), so it is captured directly.
 baseline_touched="$(git log --format='%H' "$GADD_BASE".."$GADD_HEAD" -- gadd/BASELINE.json)"
+baseline_touched_rc=$?
 signers_touched="$(git log --format='%H' "$GADD_BASE".."$GADD_HEAD" -- gadd/allowed_signers)"
+signers_touched_rc=$?
+walk_unreliable=0
+if [ "$baseline_touched_rc" -ne 0 ]; then
+  finding "lane-violation" "CRITICAL" "commit walk for gadd/BASELINE.json failed (git log rc=$baseline_touched_rc, range $GADD_BASE..$GADD_HEAD) — fail-closed" "gadd/BASELINE.json"
+  walk_unreliable=1
+fi
+if [ "$signers_touched_rc" -ne 0 ]; then
+  finding "lane-violation" "CRITICAL" "commit walk for gadd/allowed_signers failed (git log rc=$signers_touched_rc, range $GADD_BASE..$GADD_HEAD) — fail-closed" "gadd/allowed_signers"
+  walk_unreliable=1
+fi
 accept_touched=""
-if [ -n "$baseline_touched" ] || [ -n "$signers_touched" ]; then
+if [ -n "$baseline_touched" ] || [ -n "$signers_touched" ] || [ "$walk_unreliable" -eq 1 ]; then
+  # walk_unreliable forces entry into the accept-verification block even
+  # though a failed git log looks byte-for-byte like "nothing touched" —
+  # otherwise the CRITICAL findings just emitted above would still result
+  # in a silent skip of the whole block below (recording a finding is not
+  # enough by itself; accept_bad must also be forced, see below).
   accept_touched=1
 fi
 
@@ -328,6 +355,14 @@ accept_bad=0
 
 if [ -n "$accept_touched" ]; then
   anchor_unreadable=0
+  if [ "$walk_unreliable" -eq 1 ]; then
+    # run-32 D1: the accept_touched commit walk itself is unreliable (findings
+    # already recorded above) — fold into the same conservative short-circuit
+    # as an unreadable trust anchor (run-31 R2/R3 precedent: deny the
+    # exemption outright, never attempt the ENROLLED/LEGACY per-commit
+    # analysis on a known-unreliable read).
+    anchor_unreadable=1
+  fi
   if [ "$baseline_status" = "unreadable" ]; then
     finding "lane-violation" "CRITICAL" "cannot read gadd/BASELINE.json from accepted base $GADD_BASE (ambiguous git read failure, not definitively absent) — fail-closed" "gadd/BASELINE.json"
     anchor_unreadable=1
@@ -342,8 +377,9 @@ if [ -n "$accept_touched" ]; then
   fi
 
   if [ "$anchor_unreadable" -eq 1 ]; then
-    # run-31 A2 R2/R3: at least one trust-anchor read is AMBIGUOUS (not
-    # definitively absent) — deny the exemption outright rather than run
+    # run-31 A2 R2/R3 (extended by run-32 D1 to cover walk_unreliable): at
+    # least one trust-anchor read is AMBIGUOUS (not definitively absent) —
+    # deny the exemption outright rather than run
     # the ENROLLED/LEGACY per-commit analysis below on a known-unreliable
     # read. This also means the ratchet rule's "emptied/deleted" message is
     # never reached when it is specifically the head-signers read that is
@@ -393,6 +429,26 @@ if [ -n "$accept_touched" ]; then
         accept_bad=1
       fi
 
+      # TOTAL-SILENT-BYPASS HARDENING (run-32 D1): captured to a variable
+      # FIRST so git's own rc can be checked before the loop ever runs —
+      # the prior process-substitution form silently truncated a mid-walk
+      # git failure to whatever it managed to print before dying, with no
+      # way to tell "walk finished cleanly" from "walk broke partway
+      # through", letting unverified accept commits pass. A pipe (`git log
+      # | while ...`) would run the loop body in a subshell, losing this
+      # shell's accept_bad writes — a here-string over the captured
+      # variable keeps the loop in THIS shell, matching prior semantics.
+      # Guarded on non-empty output so an empty capture (either a genuine
+      # empty range or a swallowed failure, now impossible since failure is
+      # checked first) never injects one phantom empty iteration via <<<'s
+      # own appended newline — <<< "" would otherwise feed the loop one
+      # blank line where a true zero-output range must run it zero times.
+      pc_log="$(git log --format='%H%x09%s%x09%ae' "$GADD_BASE".."$GADD_HEAD" -- gadd/BASELINE.json gadd/allowed_signers)"
+      pc_log_rc=$?
+      if [ "$pc_log_rc" -ne 0 ]; then
+        finding "lane-violation" "CRITICAL" "commit walk for accept-signer verification failed (git log rc=$pc_log_rc, range $GADD_BASE..$GADD_HEAD) — fail-closed" "gadd/BASELINE.json,gadd/allowed_signers"
+        accept_bad=1
+      elif [ -n "$pc_log" ]; then
       while IFS=$'\t' read -r csha csubj cae; do
         [ -z "$csha" ] && continue
         case "$csubj" in
@@ -415,7 +471,8 @@ if [ -n "$accept_touched" ]; then
           accept_bad=1
           continue
         }
-      done < <(git log --format='%H%x09%s%x09%ae' "$GADD_BASE".."$GADD_HEAD" -- gadd/BASELINE.json gadd/allowed_signers)
+      done <<< "$pc_log"
+      fi
     fi
   else
     # LEGACY path — no base trust anchor enrolled yet. %ae check UNCHANGED
@@ -432,12 +489,22 @@ if [ -n "$accept_touched" ]; then
       finding "lane-violation" "MINOR" "accept authorship spoofable (second factor only) — enroll a signer (gadd/allowed_signers)" "gadd/BASELINE.json"
     fi
 
+    # TOTAL-SILENT-BYPASS HARDENING (run-32 D1): same capture-then-check
+    # shape as the ENROLLED loop above — see that comment for the rationale
+    # (subshell-losing-writes, phantom-empty-iteration guard).
+    pc_log2="$(git log --format='%s%x09%ae' "$GADD_BASE".."$GADD_HEAD" -- gadd/BASELINE.json gadd/allowed_signers)"
+    pc_log2_rc=$?
+    if [ "$pc_log2_rc" -ne 0 ]; then
+      finding "lane-violation" "CRITICAL" "commit walk for legacy accept verification failed (git log rc=$pc_log2_rc, range $GADD_BASE..$GADD_HEAD) — fail-closed" "gadd/BASELINE.json,gadd/allowed_signers"
+      accept_bad=1
+    elif [ -n "$pc_log2" ]; then
     while IFS=$'\t' read -r csubj cae; do
       case "$csubj" in "gadd: accept"*) ;; *) accept_bad=1; break ;; esac
       if [ -n "$accept_allow" ]; then
         printf '%s\n' "$accept_allow" | grep -qxF "$cae" || { accept_bad=1; break; }
       fi
-    done < <(git log --format='%s%x09%ae' "$GADD_BASE".."$GADD_HEAD" -- gadd/BASELINE.json gadd/allowed_signers)
+    done <<< "$pc_log2"
+    fi
   fi
   fi
 fi
