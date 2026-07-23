@@ -25,6 +25,29 @@ below (append-only) and in git.
 
 Rotation (P4, run #12, 2026-07-16): entries older than run #10 moved verbatim to [LANTERN-ARCHIVE.md](LANTERN-ARCHIVE.md) — append-only, oldest at bottom, never edited or deleted; NOW + recent runs stay here.
 
+- **mission-loop run #34 DECLARED + CLOSED same session (2026-07-22 system
+  clock; QUEUE EMPTY, zero dispatches):** bootstrap clean — lock acquired
+  first try (pid 88002, no reclaim), lease refreshed via the NEW run-33
+  ownership-proving `refresh 88002` (exit 0 — first post-build live use on
+  a fresh acquisition), heartbeat 16.2% of ceiling. Operator-button state
+  VERIFIED byte-level unchanged since the run-33 close: `gadd/BASELINE.json`
+  accepted_sha still `221f5d4` → the delivered amended final accept ("gadd:
+  accept 26ee4ed" → `26ee4ede1bdacef484827e319389d857ecb410a3`) has NOT
+  landed, so the run-32 D1 merge stays PARKED at its SR-5 ordering STOP-1;
+  all five retained mission branches intact (run-30 ×2, run-31, run-32,
+  run-33); origin main unchanged `43d896c`; local main at `bed5392` (run-33
+  close); tree clean except the known untracked `reports/` operator-side
+  artifact (2026-07-16 visual-report output, untouched per run-33
+  disposition). Plan check: NO unblocked ratified item exists — the four
+  ordered run-30/31/32 buttons + the independent run-33 n3 merge button are
+  all operator actions, and the Trivial mission-loop.md close-law sync
+  candidate awaits the operator's yes/no (accepted to queue run #33, not
+  yet ratified). Stopped: condition 1 (QUEUE EMPTY — parked work only; the
+  scheduled-chain law says this is the system working, not failing). Brief
+  regenerated to run #34, brief-check PASS pre-close. Lock released at
+  close. No metrics moved (nothing executed); North Star unmeasured this
+  run (no push).
+
 - **mission-loop run #33 CLOSE (same session; 1 item completed, MERGE-READY
   at a NEW INDEPENDENT operator button; heartbeat ~33% at close prep):**
   n3 refresh-ownership BUILT and RATIFIED — `mission/run-33-n3-refresh-ownership`
